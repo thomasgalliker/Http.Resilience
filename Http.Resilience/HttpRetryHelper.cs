@@ -93,7 +93,7 @@ namespace Http.Resilience
             {
                 try
                 {
-                    this.Log($"Starting InvokeAsync... (Attempt {currentAttempt}/{maxAttempts})");
+                    this.Log(LogLevel.Debug, $"Starting InvokeAsync... (Attempt {currentAttempt}/{maxAttempts})");
 
                     lastResult = await function();
                     if (lastResult is HttpResponseMessage httpResponseMessage)
@@ -106,19 +106,19 @@ namespace Http.Resilience
                         }
                     }
 
-                    this.Log($"InvokeAsync finished successfully (Attempt {currentAttempt}/{maxAttempts})");
+                    this.Log(currentAttempt <= 1 ? LogLevel.Debug : LogLevel.Info, $"InvokeAsync finished successfully (Attempt {currentAttempt}/{maxAttempts})");
                     return lastResult;
                 }
                 catch (Exception ex)
                 {
-                    this.Log($"InvokeAsync failed with exception (Attempt {currentAttempt}/{maxAttempts})");
+                    this.Log(LogLevel.Error, $"InvokeAsync failed with exception (Attempt {currentAttempt}/{maxAttempts})");
 
                     var remainingAttempts = maxAttempts - currentAttempt;
-                    if (remainingAttempts > 0 && (NetworkHelper.IsTransientNetworkException(ex, this.options) || this.canRetryDelegate != null && this.canRetryDelegate(ex)))
+                    if (remainingAttempts > 0 && (NetworkHelper.IsTransientNetworkException(ex, lastStatusCode, this.options) || this.canRetryDelegate != null && this.canRetryDelegate(ex)))
                     {
                         await this.SleepAsync(remainingAttempts);
                         currentAttempt++;
-                        this.Log($"InvokeAsync --> Retry");
+                        this.Log(LogLevel.Info, $"InvokeAsync --> Retry");
                         continue;
                     }
 
@@ -132,7 +132,7 @@ namespace Http.Resilience
             var backoff = this.CalculateBackoff(remainingAttempts);
             if (backoff > TimeSpan.Zero)
             {
-                this.Log($"SleepAsync waiting for {backoff.TotalSeconds:F3}s");
+                this.Log(LogLevel.Debug, $"SleepAsync waiting for {backoff.TotalSeconds:F3}s");
                 await Task.Delay(backoff);
             }
         }
@@ -140,11 +140,6 @@ namespace Http.Resilience
         protected virtual TimeSpan CalculateBackoff(int remainingAttempts)
         {
             return BackoffTimerHelper.GetExponentialBackoff(this.options.MaxRetries - remainingAttempts + 1, this.options.MinBackoff, this.options.MaxBackoff, this.options.BackoffCoefficient);
-        }
-
-        private void Log(string message)
-        {
-            Logger.Current.Log(LogLevel.Debug, $"HttpRetryHelper_{this.instance}|{message}");
         }
 
         /// <summary>
@@ -170,6 +165,11 @@ namespace Http.Resilience
 
                 return false;
             });
+        }
+
+        private void Log(LogLevel logLevel, string message)
+        {
+            Logger.Current.Log(logLevel, $"HttpRetryHelper_{this.instance}|{message}");
         }
     }
 }

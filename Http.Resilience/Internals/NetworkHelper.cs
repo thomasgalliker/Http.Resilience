@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.IO;
 using System.Net;
+using System.Net.Http;
 using System.Net.Sockets;
 
 namespace Http.Resilience.Internals
@@ -13,20 +14,20 @@ namespace Http.Resilience.Internals
         ///  Heuristic used to determine whether an exception is a transient network failure
         ///  that should be retried.
         /// </summary>
-        internal static bool IsTransientNetworkException(Exception ex)
+        internal static bool IsTransientNetworkException(Exception ex, int statusCode)
         {
-            return IsTransientNetworkException(ex, HttpRetryOptions.Default);
+            return IsTransientNetworkException(ex, statusCode, HttpRetryOptions.Default);
         }
 
         /// <summary>
         ///  Heuristic used to determine whether an exception is a transient network failure
         ///  that should be retried.
         /// </summary>
-        internal static bool IsTransientNetworkException(Exception ex, HttpRetryOptions httpRetryOptions)
+        internal static bool IsTransientNetworkException(Exception ex, int statusCode, HttpRetryOptions httpRetryOptions)
         {
             while (ex != null)
             {
-                if (IsTransientNetworkExceptionHelper(ex, httpRetryOptions))
+                if (IsTransientNetworkExceptionHelper(ex, statusCode, httpRetryOptions))
                 {
                     return true;
                 }
@@ -41,9 +42,16 @@ namespace Http.Resilience.Internals
         ///  Heuristic used to determine whether an exception is a transient network failure
         ///  that should be retried.
         /// </summary>
-        private static bool IsTransientNetworkExceptionHelper(Exception ex, HttpRetryOptions options)
+        private static bool IsTransientNetworkExceptionHelper(Exception ex, int statusCode, HttpRetryOptions options)
         {
-            if (ex is WebException webException)
+            if (ex is HttpRequestException)
+            {
+                if (options.RetryableStatusCodes.Contains((HttpStatusCode)statusCode))
+                {
+                    return true;
+                }
+            }
+            else if (ex is WebException webException)
             {
                 if (webException.Response is HttpWebResponse httpWebResponse)
                 {
@@ -54,9 +62,9 @@ namespace Http.Resilience.Internals
                 }
 
                 if (webException.Status == WebExceptionStatus.ConnectFailure ||
-                    webException.Status == WebExceptionStatus.ConnectionClosed || 
+                    webException.Status == WebExceptionStatus.ConnectionClosed ||
                     webException.Status == WebExceptionStatus.KeepAliveFailure ||
-                    webException.Status == WebExceptionStatus.NameResolutionFailure || 
+                    webException.Status == WebExceptionStatus.NameResolutionFailure ||
                     webException.Status == WebExceptionStatus.ReceiveFailure ||
                     webException.Status == WebExceptionStatus.SendFailure ||
                     webException.Status == WebExceptionStatus.Timeout)
@@ -71,9 +79,9 @@ namespace Http.Resilience.Internals
                     ex3.SocketErrorCode == SocketError.NetworkUnreachable ||
                     ex3.SocketErrorCode == SocketError.NetworkReset ||
                     ex3.SocketErrorCode == SocketError.ConnectionAborted ||
-                    ex3.SocketErrorCode == SocketError.ConnectionReset || 
+                    ex3.SocketErrorCode == SocketError.ConnectionReset ||
                     ex3.SocketErrorCode == SocketError.TimedOut ||
-                    ex3.SocketErrorCode == SocketError.HostDown || 
+                    ex3.SocketErrorCode == SocketError.HostDown ||
                     ex3.SocketErrorCode == SocketError.HostUnreachable ||
                     ex3.SocketErrorCode == SocketError.TryAgain)
                 {
@@ -89,7 +97,7 @@ namespace Http.Resilience.Internals
                     if (winHttpErrorCode == WinHttpErrorCode.ERROR_WINHTTP_CANNOT_CONNECT ||
                         winHttpErrorCode == WinHttpErrorCode.ERROR_WINHTTP_CONNECTION_ERROR ||
                         winHttpErrorCode == WinHttpErrorCode.ERROR_WINHTTP_INTERNAL_ERROR ||
-                        winHttpErrorCode == WinHttpErrorCode.ERROR_WINHTTP_NAME_NOT_RESOLVED || 
+                        winHttpErrorCode == WinHttpErrorCode.ERROR_WINHTTP_NAME_NOT_RESOLVED ||
                         winHttpErrorCode == WinHttpErrorCode.ERROR_WINHTTP_SECURE_FAILURE ||
                         winHttpErrorCode == WinHttpErrorCode.ERROR_WINHTTP_TIMEOUT)
                     {
@@ -117,15 +125,15 @@ namespace Http.Resilience.Internals
                 var curlErrorCode = (CurlErrorCode)ex.HResult;
                 if (curlErrorCode == CurlErrorCode.CURLE_COULDNT_RESOLVE_PROXY ||
                     curlErrorCode == CurlErrorCode.CURLE_COULDNT_RESOLVE_HOST ||
-                    curlErrorCode == CurlErrorCode.CURLE_COULDNT_CONNECT || 
+                    curlErrorCode == CurlErrorCode.CURLE_COULDNT_CONNECT ||
                     curlErrorCode == CurlErrorCode.CURLE_HTTP2 ||
-                    curlErrorCode == CurlErrorCode.CURLE_PARTIAL_FILE || 
-                    curlErrorCode == CurlErrorCode.CURLE_WRITE_ERROR || 
+                    curlErrorCode == CurlErrorCode.CURLE_PARTIAL_FILE ||
+                    curlErrorCode == CurlErrorCode.CURLE_WRITE_ERROR ||
                     curlErrorCode == CurlErrorCode.CURLE_UPLOAD_FAILED ||
-                    curlErrorCode == CurlErrorCode.CURLE_READ_ERROR || 
-                    curlErrorCode == CurlErrorCode.CURLE_OPERATION_TIMEDOUT || 
+                    curlErrorCode == CurlErrorCode.CURLE_READ_ERROR ||
+                    curlErrorCode == CurlErrorCode.CURLE_OPERATION_TIMEDOUT ||
                     curlErrorCode == CurlErrorCode.CURLE_INTERFACE_FAILED ||
-                    curlErrorCode == CurlErrorCode.CURLE_GOT_NOTHING || 
+                    curlErrorCode == CurlErrorCode.CURLE_GOT_NOTHING ||
                     curlErrorCode == CurlErrorCode.CURLE_SEND_ERROR ||
                     curlErrorCode == CurlErrorCode.CURLE_RECV_ERROR)
                 {
