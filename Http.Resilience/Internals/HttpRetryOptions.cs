@@ -32,7 +32,7 @@ namespace Http.Resilience.Internals
         private bool ensureSuccessStatusCode = true;
 
         private static readonly TimeSpan DefaultMinBackoff = TimeSpan.FromSeconds(1d);
-        private static readonly TimeSpan DefaultMaxBackoff = TimeSpan.FromMinutes(1d);
+        private static readonly TimeSpan DefaultMaxBackoff = TimeSpan.FromSeconds(10d);
         private static readonly TimeSpan DefaultBackoffCoefficient = TimeSpan.FromSeconds(1d);
         private static readonly int DefaultMaxRetries = 5;
 
