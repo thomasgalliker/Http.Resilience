@@ -1,12 +1,10 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Net;
 using System.Net.Http;
-using System.Threading;
 using System.Threading.Tasks;
 using Http.Resilience.Internals;
+using Http.Resilience.Internals.Logging;
 
 namespace Http.Resilience
 {
@@ -15,11 +13,11 @@ namespace Http.Resilience
     /// </summary>
     public class HttpRetryHelper
     {
-        private readonly string _instance = Guid.NewGuid().ToString().Substring(0, 5).ToUpperInvariant();
+        private readonly string instance = Guid.NewGuid().ToString().Substring(0, 5).ToUpperInvariant();
         private readonly int maxAttempts;
         private readonly Func<Exception, bool> canRetryDelegate;
 
-        private IDictionary<int, Func<Exception, Task<object>>> statusCodeExceptionHandlers = new Dictionary<int, Func<Exception, Task<object>>>();
+        private readonly IDictionary<int, Func<Exception, Task<object>>> statusCodeExceptionHandlers = new Dictionary<int, Func<Exception, Task<object>>>();
 
         private static readonly TimeSpan MinBackoff = TimeSpan.FromSeconds(1.0);
         private static readonly TimeSpan MaxBackoff = TimeSpan.FromMinutes(1.0);
@@ -84,7 +82,7 @@ namespace Http.Resilience
         /// </summary>
         public async Task<TResult> InvokeAsync<TResult>(Func<Task<TResult>> function)
         {
-            var remainingAttempts = maxAttempts;
+            var remainingAttempts = this.maxAttempts;
             var lastStatusCode = 0;
             var lastResult = default(TResult);
 
@@ -92,7 +90,7 @@ namespace Http.Resilience
             {
                 try
                 {
-                    Log($"InvokeAsync (Attempt {maxAttempts - remainingAttempts} / {maxAttempts})");
+                    this.Log($"InvokeAsync (Attempt {this.maxAttempts - remainingAttempts} / {this.maxAttempts})");
 
                     lastResult = await function();
                     if (lastResult is HttpResponseMessage httpResponseMessage)
@@ -105,11 +103,11 @@ namespace Http.Resilience
                 }
                 catch (Exception ex)
                 {
-                    if (remainingAttempts > 1 && (VssNetworkHelper.IsTransientNetworkException(ex) || canRetryDelegate != null && canRetryDelegate(ex)))
+                    if (remainingAttempts > 1 && (VssNetworkHelper.IsTransientNetworkException(ex) || this.canRetryDelegate != null && this.canRetryDelegate(ex)))
                     {
-                        await SleepAsync(remainingAttempts);
+                        await this.SleepAsync(remainingAttempts);
                         remainingAttempts--;
-                        Log($"InvokeAsync --> Retry");
+                        this.Log($"InvokeAsync --> Retry");
                         continue;
                     }
 
@@ -133,50 +131,23 @@ namespace Http.Resilience
 
         private async Task SleepAsync(int remainingAttempts)
         {
-            var backoff = CalculateBackoff(remainingAttempts);
+            var backoff = this.CalculateBackoff(remainingAttempts);
             await Task.Delay(backoff);
         }
 
         protected virtual TimeSpan CalculateBackoff(int remainingAttempts)
         {
-            return BackoffTimerHelper.GetExponentialBackoff(maxAttempts - remainingAttempts + 1, MinBackoff, MaxBackoff, DeltaBackoff);
+            return BackoffTimerHelper.GetExponentialBackoff(this.maxAttempts - remainingAttempts + 1, MinBackoff, MaxBackoff, DeltaBackoff);
         }
 
         private void Log(string message)
         {
-            Debug.WriteLine($"HttpRetryHelper_{_instance}|{message}");
+            Logger.Current.Log(LogLevel.Debug, $"HttpRetryHelper_{this.instance}|{message}");
         }
 
         public void OnCodeAsync(int statusCode, Func<Exception, Task<object>> handler)
         {
             this.statusCodeExceptionHandlers[statusCode] = handler;
-        }
-    }
-
-    internal static class AsyncHelper
-    {
-        private static readonly TaskFactory _myTaskFactory = new TaskFactory(
-            CancellationToken.None,
-            TaskCreationOptions.None,
-            TaskContinuationOptions.None,
-            TaskScheduler.Default);
-
-        public static TResult RunSync<TResult>(Func<Task<TResult>> func)
-        {
-            return _myTaskFactory
-              .StartNew(func)
-              .Unwrap()
-              .GetAwaiter()
-              .GetResult();
-        }
-
-        public static void RunSync(Func<Task> func)
-        {
-            _myTaskFactory
-              .StartNew(func)
-              .Unwrap()
-              .GetAwaiter()
-              .GetResult();
         }
     }
 }
