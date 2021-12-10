@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Http.Resilience.Internals;
@@ -9,37 +7,41 @@ using Http.Resilience.Internals.Logging;
 namespace Http.Resilience
 {
     /// <summary>
-    /// https://github.com/arutnik/meetapp-mobile/blob/2014bc168635bf11781ba7c392df5fd96cb7dbe3/src/PMA.Mobile.Core/Utility/HttpRetryHelper.cs#L58
+    /// HTTP retry helper which can be used to retry failed HTTP calls.
+    /// The retry behavior is configurable in <seealso cref="HttpRetryOptions"/>.
     /// </summary>
     public class HttpRetryHelper
     {
         private readonly string instance = Guid.NewGuid().ToString().Substring(0, 5).ToUpperInvariant();
-        private readonly int maxAttempts;
-        private readonly Func<Exception, bool> canRetryDelegate;
+        private readonly HttpRetryOptions options;
 
-        private readonly IDictionary<int, Func<Exception, Task<object>>> statusCodeExceptionHandlers = new Dictionary<int, Func<Exception, Task<object>>>();
+        private Func<Exception, bool> canRetryDelegate;
 
-        private static readonly TimeSpan MinBackoff = TimeSpan.FromSeconds(1.0);
-        private static readonly TimeSpan MaxBackoff = TimeSpan.FromMinutes(1.0);
-        private static readonly TimeSpan DeltaBackoff = TimeSpan.FromSeconds(1.0);
+        public HttpRetryOptions Options => this.options;
 
-        public int MaxAttempts => this.maxAttempts;
-
-        //
-        // Parameters:
-        //   maxAttempts:
-        //     The total number of attempts to invoke the submitted action with. A value of
-        //     1 indicates that no retries will be attempted. Note that this was renamed from
-        //     "maxRetries" to match the behavior of the parameter (i.e. maxRetries was previously
-        //     behaving like maxAttempts).
-        //
-        //   canRetryDelegate:
-        //     Evaluation function which returns true for a given exception if that exception
-        //     is permitted to be retried.
-        public HttpRetryHelper(int maxAttempts, Func<Exception, bool> canRetryDelegate = null)
+        /// <summary>
+        /// Creates an instance of <seealso cref="HttpRetryHelper"/> with default <seealso cref="HttpRetryOptions"/>.
+        /// </summary>
+        public HttpRetryHelper()
+            : this(HttpRetryOptions.Default)
         {
-            this.maxAttempts = maxAttempts;
-            this.canRetryDelegate = canRetryDelegate;
+        }
+
+        /// <summary>
+        /// Creates an instance of <seealso cref="HttpRetryHelper"/> with default <seealso cref="HttpRetryOptions"/>
+        /// overriding <paramref name="maxRetries"/>.
+        /// </summary>
+        public HttpRetryHelper(int maxRetries)
+            : this(new HttpRetryOptions { MaxRetries = maxRetries })
+        {
+        }
+
+        /// <summary>
+        /// Creates an instance of <seealso cref="HttpRetryHelper"/> with <paramref name="httpRetryOptions"/>.
+        /// </summary>
+        public HttpRetryHelper(HttpRetryOptions httpRetryOptions)
+        {
+            this.options = httpRetryOptions;
         }
 
         /// <summary>
@@ -82,7 +84,8 @@ namespace Http.Resilience
         /// </summary>
         public async Task<TResult> InvokeAsync<TResult>(Func<Task<TResult>> function)
         {
-            var remainingAttempts = this.maxAttempts;
+            var currentAttempt = 1;
+            var maxAttempts = this.options.MaxRetries + 1;
             var lastStatusCode = 0;
             var lastResult = default(TResult);
 
@@ -90,39 +93,31 @@ namespace Http.Resilience
             {
                 try
                 {
-                    this.Log($"InvokeAsync (Attempt {this.maxAttempts - remainingAttempts} / {this.maxAttempts})");
+                    this.Log($"InvokeAsync (Attempt {currentAttempt}/{maxAttempts})");
 
                     lastResult = await function();
                     if (lastResult is HttpResponseMessage httpResponseMessage)
                     {
                         lastStatusCode = (int)httpResponseMessage.StatusCode;
-                        httpResponseMessage.EnsureSuccessStatusCode();
+
+                        if (this.options.EnsureSuccessStatusCode)
+                        {
+                            httpResponseMessage.EnsureSuccessStatusCode();
+                        }
                     }
 
                     return lastResult;
                 }
                 catch (Exception ex)
                 {
-                    if (remainingAttempts > 1 && (VssNetworkHelper.IsTransientNetworkException(ex) || this.canRetryDelegate != null && this.canRetryDelegate(ex)))
+                    var remainingAttempts = maxAttempts - currentAttempt;
+                    if (remainingAttempts > 0 && (NetworkHelper.IsTransientNetworkException(ex, this.options) || this.canRetryDelegate != null && this.canRetryDelegate(ex)))
                     {
                         await this.SleepAsync(remainingAttempts);
-                        remainingAttempts--;
+                        currentAttempt++;
                         this.Log($"InvokeAsync --> Retry");
                         continue;
                     }
-
-                    //if (ex is WebException webException)
-                    //{
-                    //    if (webException.Response is HttpWebResponse response)
-                    //    {
-                    //        lastStatusCode = (int)response.StatusCode;
-                    //    }
-                    //}
-                    //if (statusCodeExceptionHandlers.TryGetValue(lastStatusCode, out var statusCodeExceptionHandler))
-                    //{
-                    //    Log($"InvokeAsync --> custom error handling for status code {lastStatusCode}");
-                    //    return await statusCodeExceptionHandler(ex) as TResult;
-                    //}
 
                     throw;
                 }
@@ -132,12 +127,13 @@ namespace Http.Resilience
         private async Task SleepAsync(int remainingAttempts)
         {
             var backoff = this.CalculateBackoff(remainingAttempts);
+            this.Log($"SleepAsync waiting for {backoff.TotalSeconds:F3}");
             await Task.Delay(backoff);
         }
 
         protected virtual TimeSpan CalculateBackoff(int remainingAttempts)
         {
-            return BackoffTimerHelper.GetExponentialBackoff(this.maxAttempts - remainingAttempts + 1, MinBackoff, MaxBackoff, DeltaBackoff);
+            return BackoffTimerHelper.GetExponentialBackoff(this.options.MaxRetries - remainingAttempts + 1, this.options.MinBackoff, this.options.MaxBackoff, this.options.BackoffCoefficient);
         }
 
         private void Log(string message)
@@ -145,9 +141,29 @@ namespace Http.Resilience
             Logger.Current.Log(LogLevel.Debug, $"HttpRetryHelper_{this.instance}|{message}");
         }
 
-        public void OnCodeAsync(int statusCode, Func<Exception, Task<object>> handler)
+        /// <summary>
+        /// Custom retry decision logic if an exception occurred.
+        /// </summary>
+        public HttpRetryHelper RetryOnException(Func<Exception, bool> handler)
         {
-            this.statusCodeExceptionHandlers[statusCode] = handler;
+            this.canRetryDelegate = handler;
+            return this;
+        }
+
+        /// <summary>
+        /// Custom retry decision logic if an exception of type <typeparamref name="TException"/> occurred.
+        /// </summary>
+        public HttpRetryHelper RetryOnException<TException>(Func<TException, bool> handler) where TException : Exception
+        {
+            return this.RetryOnException((ex) =>
+            {
+                if (ex is TException tex)
+                {
+                    return handler(tex);
+                }
+
+                return false;
+            });
         }
     }
 }
