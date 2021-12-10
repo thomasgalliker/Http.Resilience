@@ -77,13 +77,13 @@ namespace Http.Resilience.Tests
         public async Task InvokeAsync_WithHttpClient_HttpStatusCodeOK()
         {
             // Arrange
-            var client = new HttpClient();
+            var httpClient = new HttpClient();
             var requestUri = "https://quotes.rest/qod?language=en";
 
             var httpRetryHelper = new HttpRetryHelper(3);
 
             // Act
-            var httpResponseMessage = await httpRetryHelper.InvokeAsync(async () => await client.GetAsync(requestUri));
+            var httpResponseMessage = await httpRetryHelper.InvokeAsync(async () => await httpClient.GetAsync(requestUri));
 
             // Assert
             httpResponseMessage.Should().NotBeNull();
@@ -96,7 +96,7 @@ namespace Http.Resilience.Tests
         {
             // Arrange
             var maxRetries = 3;
-            var client = new HttpClient();
+            var httpClient = new HttpClient();
             var requestUri = "https://quotes.rest/quote/random?language=en&limit=1";
             var retryOnExceptionHits = 0;
 
@@ -108,7 +108,7 @@ namespace Http.Resilience.Tests
                 });
 
             // Act
-            Func<Task> action = async () => await httpRetryHelper.InvokeAsync(async () => await client.GetAsync(requestUri));
+            Func<Task> action = async () => await httpRetryHelper.InvokeAsync(async () => await httpClient.GetAsync(requestUri));
 
             // Assert
             var httpRequestException = (await action.Should().ThrowAsync<HttpRequestException>()).Which;
