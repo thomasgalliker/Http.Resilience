@@ -17,7 +17,7 @@ namespace Http.Resilience.Tests
 
         [Theory]
         [ClassData(typeof(GetExponentialBackoffTestdata))]
-        public void ShouldReturnOK((int Attempt, TimeSpan MinBackoff, TimeSpan MaxBackoff, TimeSpan DeltaBackoff) input, TimeSpan expectedBackoff)
+        public void ShouldGetExponentialBackoff((int Attempt, TimeSpan MinBackoff, TimeSpan MaxBackoff, TimeSpan DeltaBackoff) input, TimeSpan expectedBackoff)
         {
             // Act
             var backoff = BackoffTimerHelper.GetExponentialBackoff(input.Attempt, input.MinBackoff, input.MaxBackoff, input.DeltaBackoff);
