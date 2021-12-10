@@ -1,6 +1,11 @@
-﻿using System;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Net;
 using System.Net.Http;
 using System.Threading;
+using System.Threading.Tasks;
 using Http.Resilience.Internals;
 
 namespace Http.Resilience
@@ -10,8 +15,11 @@ namespace Http.Resilience
     /// </summary>
     public class HttpRetryHelper
     {
+        private readonly string _instance = Guid.NewGuid().ToString().Substring(0, 5).ToUpperInvariant();
         private readonly int maxAttempts;
         private readonly Func<Exception, bool> canRetryDelegate;
+
+        private IDictionary<int, Func<Exception, Task<object>>> statusCodeExceptionHandlers = new Dictionary<int, Func<Exception, Task<object>>>();
 
         private static readonly TimeSpan MinBackoff = TimeSpan.FromSeconds(1.0);
         private static readonly TimeSpan MaxBackoff = TimeSpan.FromMinutes(1.0);
@@ -36,75 +44,139 @@ namespace Http.Resilience
             this.canRetryDelegate = canRetryDelegate;
         }
 
+        /// <summary>
+        /// Calls <paramref name="action"/> synchronously.
+        /// </summary>
         public void Invoke(Action action)
         {
-            this.Invoke(action, out var _);
-        }
-
-        //
-        // Parameters:
-        //   action:
-        public void Invoke(Action action, out int remainingAttempts)
-        {
-            remainingAttempts = this.maxAttempts;
-            while (true)
+            AsyncHelper.RunSync(() => this.InvokeAsync(() =>
             {
-                try
-                {
-                    action();
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    if ((VssNetworkHelper.IsTransientNetworkException(ex) || this.canRetryDelegate != null && this.canRetryDelegate(ex)) && remainingAttempts > 1)
-                    {
-                        this.Sleep(remainingAttempts);
-                        remainingAttempts--;
-                        continue;
-                    }
-
-                    throw;
-                }
-            }
+                action();
+                return Task.FromResult<object>(null);
+            }));
         }
 
+        /// <summary>
+        /// Calls <paramref name="function"/> synchronously and returns <typeparamref name="TResult"/>.
+        /// </summary>
         public TResult Invoke<TResult>(Func<TResult> function)
         {
-            return this.Invoke(function, out _);
+            return AsyncHelper.RunSync(() => this.InvokeAsync(() =>
+            {
+                return Task.FromResult(function());
+            }));
         }
 
-        public TResult Invoke<TResult>(Func<TResult> function, out int remainingAttempts)
+        /// <summary>
+        /// Calls <paramref name="function"/> asynchronously.
+        /// </summary>
+        public async Task InvokeAsync(Func<Task> function)
         {
-            remainingAttempts = this.maxAttempts;
+            await this.InvokeAsync<object>(async () =>
+            {
+                await function();
+                return Task.FromResult<object>(null);
+            });
+        }
+
+        /// <summary>
+        /// Calls <paramref name="function"/> asynchronously and returns <typeparamref name="TResult"/>.
+        /// </summary>
+        public async Task<TResult> InvokeAsync<TResult>(Func<Task<TResult>> function)
+        {
+            var remainingAttempts = maxAttempts;
+            var lastStatusCode = 0;
+            var lastResult = default(TResult);
+
             while (true)
             {
                 try
                 {
-                    var result = function();
-                    if (result is HttpResponseMessage httpResponseMessage)
+                    Log($"InvokeAsync (Attempt {maxAttempts - remainingAttempts} / {maxAttempts})");
+
+                    lastResult = await function();
+                    if (lastResult is HttpResponseMessage httpResponseMessage)
                     {
+                        lastStatusCode = (int)httpResponseMessage.StatusCode;
                         httpResponseMessage.EnsureSuccessStatusCode();
                     }
 
-                    return result;
+                    return lastResult;
                 }
                 catch (Exception ex)
                 {
-                    if ((VssNetworkHelper.IsTransientNetworkException(ex) || this.canRetryDelegate != null && this.canRetryDelegate(ex)) && remainingAttempts > 1)
+                    if (remainingAttempts > 1 && (VssNetworkHelper.IsTransientNetworkException(ex) || canRetryDelegate != null && canRetryDelegate(ex)))
                     {
-                        this.Sleep(remainingAttempts);
+                        await SleepAsync(remainingAttempts);
                         remainingAttempts--;
+                        Log($"InvokeAsync --> Retry");
                         continue;
                     }
+
+                    //if (ex is WebException webException)
+                    //{
+                    //    if (webException.Response is HttpWebResponse response)
+                    //    {
+                    //        lastStatusCode = (int)response.StatusCode;
+                    //    }
+                    //}
+                    //if (statusCodeExceptionHandlers.TryGetValue(lastStatusCode, out var statusCodeExceptionHandler))
+                    //{
+                    //    Log($"InvokeAsync --> custom error handling for status code {lastStatusCode}");
+                    //    return await statusCodeExceptionHandler(ex) as TResult;
+                    //}
 
                     throw;
                 }
             }
         }
 
-        protected virtual void Sleep(int remainingAttempts)
+        private async Task SleepAsync(int remainingAttempts)
         {
-            Thread.Sleep(BackoffTimerHelper.GetExponentialBackoff(this.maxAttempts - remainingAttempts + 1, MinBackoff, MaxBackoff, DeltaBackoff));
+            var backoff = CalculateBackoff(remainingAttempts);
+            await Task.Delay(backoff);
+        }
+
+        protected virtual TimeSpan CalculateBackoff(int remainingAttempts)
+        {
+            return BackoffTimerHelper.GetExponentialBackoff(maxAttempts - remainingAttempts + 1, MinBackoff, MaxBackoff, DeltaBackoff);
+        }
+
+        private void Log(string message)
+        {
+            Debug.WriteLine($"HttpRetryHelper_{_instance}|{message}");
+        }
+
+        public void OnCodeAsync(int statusCode, Func<Exception, Task<object>> handler)
+        {
+            this.statusCodeExceptionHandlers[statusCode] = handler;
+        }
+    }
+
+    internal static class AsyncHelper
+    {
+        private static readonly TaskFactory _myTaskFactory = new TaskFactory(
+            CancellationToken.None,
+            TaskCreationOptions.None,
+            TaskContinuationOptions.None,
+            TaskScheduler.Default);
+
+        public static TResult RunSync<TResult>(Func<Task<TResult>> func)
+        {
+            return _myTaskFactory
+              .StartNew(func)
+              .Unwrap()
+              .GetAwaiter()
+              .GetResult();
+        }
+
+        public static void RunSync(Func<Task> func)
+        {
+            _myTaskFactory
+              .StartNew(func)
+              .Unwrap()
+              .GetAwaiter()
+              .GetResult();
         }
     }
 }
