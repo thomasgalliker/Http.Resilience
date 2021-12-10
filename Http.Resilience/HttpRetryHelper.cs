@@ -93,7 +93,7 @@ namespace Http.Resilience
             {
                 try
                 {
-                    this.Log($"InvokeAsync (Attempt {currentAttempt}/{maxAttempts})");
+                    this.Log($"Starting InvokeAsync... (Attempt {currentAttempt}/{maxAttempts})");
 
                     lastResult = await function();
                     if (lastResult is HttpResponseMessage httpResponseMessage)
@@ -106,10 +106,13 @@ namespace Http.Resilience
                         }
                     }
 
+                    this.Log($"InvokeAsync finished successfully (Attempt {currentAttempt}/{maxAttempts})");
                     return lastResult;
                 }
                 catch (Exception ex)
                 {
+                    this.Log($"InvokeAsync failed with exception (Attempt {currentAttempt}/{maxAttempts})");
+
                     var remainingAttempts = maxAttempts - currentAttempt;
                     if (remainingAttempts > 0 && (NetworkHelper.IsTransientNetworkException(ex, this.options) || this.canRetryDelegate != null && this.canRetryDelegate(ex)))
                     {
@@ -127,8 +130,11 @@ namespace Http.Resilience
         private async Task SleepAsync(int remainingAttempts)
         {
             var backoff = this.CalculateBackoff(remainingAttempts);
-            this.Log($"SleepAsync waiting for {backoff.TotalSeconds:F3}");
-            await Task.Delay(backoff);
+            if (backoff > TimeSpan.Zero)
+            {
+                this.Log($"SleepAsync waiting for {backoff.TotalSeconds:F3}s");
+                await Task.Delay(backoff);
+            }
         }
 
         protected virtual TimeSpan CalculateBackoff(int remainingAttempts)
