@@ -1,9 +1,6 @@
-﻿using System.ComponentModel;
-
-namespace Http.Resilience.Internals.Logging
+﻿namespace Http.Resilience.Internals.Logging
 {
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    internal enum LogLevel
+    public enum LogLevel
     {
         Info,
         Warning,

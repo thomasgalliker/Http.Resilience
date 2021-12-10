@@ -1,11 +1,9 @@
 ﻿using System;
-using System.ComponentModel;
 using System.Threading;
 
 namespace Http.Resilience.Internals.Logging
 {
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    internal static class Logger
+    public static class Logger
     {
         private static readonly Lazy<ILogger> DefaultLogger = new Lazy<ILogger>(CreateDefaultLogger, LazyThreadSafetyMode.PublicationOnly);
         private static ILogger logger;
