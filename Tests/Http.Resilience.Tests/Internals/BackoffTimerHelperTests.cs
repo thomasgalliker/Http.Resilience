@@ -23,8 +23,9 @@ namespace Http.Resilience.Tests
             var backoff = BackoffTimerHelper.GetExponentialBackoff(input.Attempt, input.MinBackoff, input.MaxBackoff, input.DeltaBackoff);
 
             // Assert
-            this.testOutputHelper.WriteLine($"backoff={backoff}");
-            backoff.Should().BeCloseTo(expectedBackoff, precision: input.DeltaBackoff);
+            var precision = expectedBackoff / 100 * 40;
+            this.testOutputHelper.WriteLine($"backoff={backoff}, precision={precision}");
+            backoff.Should().BeCloseTo(expectedBackoff, precision);
         }
 
         public class GetExponentialBackoffTestdata : TheoryData<(int Attempt, TimeSpan MinBackoff, TimeSpan MaxBackoff, TimeSpan DeltaBackoff), TimeSpan>
@@ -37,7 +38,9 @@ namespace Http.Resilience.Tests
                 this.Add((Attempt: 3, MinBackoff: TimeSpan.FromSeconds(1), MaxBackoff: TimeSpan.FromSeconds(10), DeltaBackoff: TimeSpan.Zero), TimeSpan.FromSeconds(1));
 
                 // With DeltaBackoff
-                this.Add((Attempt: 1, MinBackoff: TimeSpan.FromSeconds(1), MaxBackoff: TimeSpan.FromSeconds(10), DeltaBackoff: TimeSpan.FromSeconds(1)), TimeSpan.FromTicks(20559743L));
+                this.Add((Attempt: 1, MinBackoff: TimeSpan.FromSeconds(1), MaxBackoff: TimeSpan.FromSeconds(10), DeltaBackoff: TimeSpan.FromSeconds(1)), TimeSpan.FromSeconds(2));
+                this.Add((Attempt: 2, MinBackoff: TimeSpan.FromSeconds(1), MaxBackoff: TimeSpan.FromSeconds(10), DeltaBackoff: TimeSpan.FromSeconds(1)), TimeSpan.FromSeconds(4));
+                this.Add((Attempt: 3, MinBackoff: TimeSpan.FromSeconds(1), MaxBackoff: TimeSpan.FromSeconds(10), DeltaBackoff: TimeSpan.FromSeconds(1)), TimeSpan.FromSeconds(8));
             }
         }
     }

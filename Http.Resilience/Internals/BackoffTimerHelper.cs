@@ -21,10 +21,10 @@ namespace Http.Resilience.Internals
             if (deltaBackoff != TimeSpan.Zero)
             {
                 var randomValue = Rnd.Value.NextDouble();
-                num2 = deltaBackoff.TotalMilliseconds * (0.8 + (randomValue * 0.4));
+                num2 = deltaBackoff.TotalMilliseconds * (0.8d + (randomValue * 0.4d));
             }
 
-            var num3 = attempt < 0 ? Math.Pow(radix, attempt) * num2 : (Math.Pow(radix, attempt) - 1.0) * num2;
+            var num3 = attempt < 0 ? Math.Pow(radix, attempt) * num2 : (Math.Pow(radix, attempt) - 1d) * num2;
             return TimeSpan.FromMilliseconds(Math.Min(minBackoff.TotalMilliseconds + num3, maxBackoff.TotalMilliseconds));
         }
 
