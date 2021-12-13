@@ -28,7 +28,7 @@ namespace Http.Resilience.Internals
         private TimeSpan maxBackoff;
         private TimeSpan backoffCoefficient;
         private ICollection<HttpStatusCode> retryableStatusCodes;
-        private ICollection<HttpRetryableStatusCodeFilter> retryFilters;
+        private ICollection<HttpRetryableStatusCodeFilter> retryFilters; // TODO: Move this to HttpRetryHelper
         private bool ensureSuccessStatusCode = true;
 
         private static readonly TimeSpan DefaultMinBackoff = TimeSpan.FromSeconds(1d);

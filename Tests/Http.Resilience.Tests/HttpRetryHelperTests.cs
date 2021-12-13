@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Xunit;
@@ -33,15 +34,53 @@ namespace Http.Resilience.Tests
             response.StatusCode.Should().Be(HttpStatusCode.OK);
         }
 
-        [Fact]
-        public void Invoke_ShouldRetryOnWebException_ReceiveFailure()
+
+        [Theory]
+        [InlineData(WebExceptionStatus.ConnectFailure)]
+        [InlineData(WebExceptionStatus.ConnectionClosed)]
+        [InlineData(WebExceptionStatus.KeepAliveFailure)]
+        [InlineData(WebExceptionStatus.NameResolutionFailure)]
+        [InlineData(WebExceptionStatus.ReceiveFailure)]
+        [InlineData(WebExceptionStatus.SendFailure)]
+        [InlineData(WebExceptionStatus.Timeout)]
+        public void Invoke_ShouldRetryOnWebException_ReceiveFailure(WebExceptionStatus webExceptionStatus)
         {
             // Arrange
             var httpRetryHelper = new HttpRetryHelper(3);
 
             var attempts = new Queue<Func<HttpResponseMessage>>(new List<Func<HttpResponseMessage>>
             {
-                () => throw new WebException("Test exception", WebExceptionStatus.ReceiveFailure),
+                () => throw new WebException("Test exception", webExceptionStatus),
+                () => new HttpResponseMessage(HttpStatusCode.OK),
+            });
+
+            // Act
+            var response = httpRetryHelper.Invoke(() => attempts.Dequeue()());
+
+            // Assert
+            response.Should().NotBeNull();
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        [Theory]
+        [InlineData(SocketError.Interrupted)]
+        [InlineData(SocketError.NetworkDown)]
+        [InlineData(SocketError.NetworkUnreachable)]
+        [InlineData(SocketError.NetworkReset)]
+        [InlineData(SocketError.ConnectionAborted)]
+        [InlineData(SocketError.ConnectionReset)]
+        [InlineData(SocketError.TimedOut)]
+        [InlineData(SocketError.HostDown)]
+        [InlineData(SocketError.HostUnreachable)]
+        [InlineData(SocketError.TryAgain)]
+        public void Invoke_ShouldRetryOnSocketException(SocketError socketError)
+        {
+            // Arrange
+            var httpRetryHelper = new HttpRetryHelper(3);
+
+            var attempts = new Queue<Func<HttpResponseMessage>>(new List<Func<HttpResponseMessage>>
+            {
+                () => throw new SocketException((int)socketError),
                 () => new HttpResponseMessage(HttpStatusCode.OK),
             });
 
