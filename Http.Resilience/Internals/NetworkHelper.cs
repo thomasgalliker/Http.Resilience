@@ -14,15 +14,6 @@ namespace Http.Resilience.Internals
         ///  Heuristic used to determine whether an exception is a transient network failure
         ///  that should be retried.
         /// </summary>
-        internal static bool IsTransientNetworkException(Exception ex, int statusCode)
-        {
-            return IsTransientNetworkException(ex, statusCode, HttpRetryOptions.Default);
-        }
-
-        /// <summary>
-        ///  Heuristic used to determine whether an exception is a transient network failure
-        ///  that should be retried.
-        /// </summary>
         internal static bool IsTransientNetworkException(Exception ex, int statusCode, HttpRetryOptions httpRetryOptions)
         {
             while (ex != null)
