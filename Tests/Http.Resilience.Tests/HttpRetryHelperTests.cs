@@ -2,15 +2,24 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
+using System.Threading.Tasks;
 using FluentAssertions;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Http.Resilience.Tests
 {
     public class HttpRetryHelperTests
     {
+        private readonly ITestOutputHelper testOutputHelper;
+
+        public HttpRetryHelperTests(ITestOutputHelper testOutputHelper)
+        {
+            this.testOutputHelper = testOutputHelper;
+        }
+
         [Fact]
-        public void ShouldReturnOK()
+        public void Invoke_ShouldReturnOK()
         {
             // Arrange
             var httpRetryHelper = new HttpRetryHelper(3);
@@ -25,7 +34,7 @@ namespace Http.Resilience.Tests
         }
 
         [Fact]
-        public void ShouldRetryOnWebException_ReceiveFailure()
+        public void Invoke_ShouldRetryOnWebException_ReceiveFailure()
         {
             // Arrange
             var httpRetryHelper = new HttpRetryHelper(3);
@@ -45,7 +54,7 @@ namespace Http.Resilience.Tests
         }
 
         [Fact]
-        public void ShouldReturnInternalServerError()
+        public void Invoke_ShouldReturnInternalServerError()
         {
             // Arrange
             var httpRetryHelper = new HttpRetryHelper(3);
@@ -62,6 +71,50 @@ namespace Http.Resilience.Tests
             // Assert
             var httpRequestException = action.Should().Throw<HttpRequestException>().Which;
             httpRequestException.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+        }
+
+        [Fact]
+        public async Task InvokeAsync_WithHttpClient_HttpStatusCodeOK()
+        {
+            // Arrange
+            var httpClient = new HttpClient();
+            var requestUri = "https://quotes.rest/qod?language=en";
+
+            var httpRetryHelper = new HttpRetryHelper(3);
+
+            // Act
+            var httpResponseMessage = await httpRetryHelper.InvokeAsync(async () => await httpClient.GetAsync(requestUri));
+
+            // Assert
+            httpResponseMessage.Should().NotBeNull();
+            httpResponseMessage.Content.Should().NotBeNull();
+            httpResponseMessage.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        [Fact]
+        public async Task InvokeAsync_WithHttpClient_HttpStatusCodeUnauthorized()
+        {
+            // Arrange
+            var maxRetries = 3;
+            var httpClient = new HttpClient();
+            var requestUri = "https://quotes.rest/quote/random?language=en&limit=1";
+            var retryOnExceptionHits = 0;
+
+            var httpRetryHelper = new HttpRetryHelper(maxRetries)
+                .RetryOnException<HttpRequestException>(ex =>
+                {
+                    retryOnExceptionHits++;
+                    return true;
+                });
+
+            // Act
+            Func<Task> action = async () => await httpRetryHelper.InvokeAsync(async () => await httpClient.GetAsync(requestUri));
+
+            // Assert
+            var httpRequestException = (await action.Should().ThrowAsync<HttpRequestException>()).Which;
+            httpRequestException.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+
+            retryOnExceptionHits.Should().Be(maxRetries);
         }
     }
 }
