@@ -14,16 +14,50 @@ Use the following command to install Http.Resilience using NuGet package manager
 You can use this library in any .NET Standard or .NET Core project.
 
 ### API Usage
-#### Retry failing HTTP requests
+#### Recover from transient network failure
 The following sample demonstrates a simple HTTP request using HttpClient. HttpRetryHelper is used to wrap httpClient.GetAsync(...). Whenever GetAsync(...) fails due to a transilient network failure, HttpRetryHelper attempts to recover the problem by repeatedly calling InvokeAsync.
 ```C#
 var httpClient = new HttpClient();
 var requestUri = "https://quotes.rest/qod?language=en";
 
-var httpRetryHelper = new HttpRetryHelper(maxRetries: 2);
-var httpResponseMessage = await httpRetryHelper.InvokeAsync(async () => await httpClient.GetAsync(requestUri));
+var httpRetryHelper = new HttpRetryHelper(maxRetries: 3);
 
-// httpResponseMessage.StatusCode should be "OK" (200)
+try
+{
+    var httpResponseMessage = await httpRetryHelper.InvokeAsync(async () => await httpClient.GetAsync(requestUri));
+    var jsonContent = await httpResponseMessage.Content.ReadAsStringAsync();
+
+    Console.WriteLine($"{jsonContent}");
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"{ex.Message}");
+}
+```
+
+#### Recover from unsuccessful HTTP status code
+Retries can be configured using the RetryOnException delegate. If Invoke/Async throws an exception, we can intercept it with RetryOnException((ex) => ...) and return a bool value to indicate whether we want to retry the particular HTTP request (true=retry, false=do not retry).
+```C#
+var httpClient = new HttpClient();
+var requestUri = "https://quotes.rest/qod?language=en";
+
+var httpRetryOptions = new HttpRetryOptions();
+httpRetryOptions.MaxRetries = 4;
+
+var httpRetryHelper = new HttpRetryHelper(httpRetryOptions);
+httpRetryHelper.RetryOnException<HttpRequestException>(ex => { return ex.StatusCode == HttpStatusCode.ServiceUnavailable; });
+
+try
+{
+    var httpResponseMessage = await httpRetryHelper.InvokeAsync(async () => await httpClient.GetAsync(requestUri));
+    var jsonContent = await httpResponseMessage.Content.ReadAsStringAsync();
+
+    Console.WriteLine($"{jsonContent}");
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"{ex.Message}");
+}
 ```
 
 ### License
