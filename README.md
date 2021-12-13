@@ -23,7 +23,7 @@ var requestUri = "https://quotes.rest/qod?language=en";
 var httpRetryHelper = new HttpRetryHelper(maxRetries: 2);
 var httpResponseMessage = await httpRetryHelper.InvokeAsync(async () => await httpClient.GetAsync(requestUri));
 
-// httpResponseMessage.StatusCode should no be OK
+// httpResponseMessage.StatusCode should be "OK" (200)
 ```
 
 ### License
