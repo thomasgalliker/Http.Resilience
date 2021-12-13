@@ -34,16 +34,24 @@ namespace Http.Resilience.Tests
             response.StatusCode.Should().Be(HttpStatusCode.OK);
         }
 
+        [Fact]
+        public void Invoke_ShouldReturnVoid()
+        {
+            // Arrange
+            var numberOfInvokes = 0;
+            var httpRetryHelper = new HttpRetryHelper(3);
+            var httpResponseMessage = new HttpResponseMessage(HttpStatusCode.OK);
+
+            // Act
+            httpRetryHelper.Invoke(() => { numberOfInvokes++; });
+
+            // Assert
+            numberOfInvokes.Should().Be(1);
+        }
 
         [Theory]
-        [InlineData(WebExceptionStatus.ConnectFailure)]
-        [InlineData(WebExceptionStatus.ConnectionClosed)]
-        [InlineData(WebExceptionStatus.KeepAliveFailure)]
-        [InlineData(WebExceptionStatus.NameResolutionFailure)]
-        [InlineData(WebExceptionStatus.ReceiveFailure)]
-        [InlineData(WebExceptionStatus.SendFailure)]
-        [InlineData(WebExceptionStatus.Timeout)]
-        public void Invoke_ShouldRetryOnWebException_ReceiveFailure(WebExceptionStatus webExceptionStatus)
+        [ClassData(typeof(WebExceptionStatusTestdata))]
+        public void Invoke_ShouldRetryOnWebException(WebExceptionStatus webExceptionStatus)
         {
             // Arrange
             var httpRetryHelper = new HttpRetryHelper(3);
@@ -60,6 +68,20 @@ namespace Http.Resilience.Tests
             // Assert
             response.Should().NotBeNull();
             response.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        public class WebExceptionStatusTestdata : TheoryData<WebExceptionStatus>
+        {
+            public WebExceptionStatusTestdata()
+            {
+                this.Add(WebExceptionStatus.ConnectFailure);
+                this.Add(WebExceptionStatus.ConnectionClosed);
+                this.Add(WebExceptionStatus.KeepAliveFailure);
+                this.Add(WebExceptionStatus.NameResolutionFailure);
+                this.Add(WebExceptionStatus.ReceiveFailure);
+                this.Add(WebExceptionStatus.SendFailure);
+                this.Add(WebExceptionStatus.Timeout);
+            }
         }
 
         [Theory]
