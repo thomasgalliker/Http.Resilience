@@ -147,6 +147,11 @@ namespace Http.Resilience
         /// </summary>
         public HttpRetryHelper RetryOnException(Func<Exception, bool> handler)
         {
+            if (this.canRetryDelegate != null)
+            {
+                throw new InvalidOperationException($"{nameof(RetryOnException)} cannot be called more than once");
+            }
+
             this.canRetryDelegate = handler;
             return this;
         }

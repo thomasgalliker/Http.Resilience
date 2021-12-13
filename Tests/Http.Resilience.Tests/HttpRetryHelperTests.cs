@@ -74,7 +74,7 @@ namespace Http.Resilience.Tests
         }
 
         [Fact]
-        public async Task InvokeAsync_WithHttpClient_HttpStatusCodeOK()
+        public async Task InvokeAsync_WithHttpClient()
         {
             // Arrange
             var httpClient = new HttpClient();
@@ -92,7 +92,7 @@ namespace Http.Resilience.Tests
         }
 
         [Fact]
-        public async Task InvokeAsync_WithHttpClient_HttpStatusCodeUnauthorized()
+        public async Task InvokeAsync_WithHttpClient_RetryOnException()
         {
             // Arrange
             var maxRetries = 3;
@@ -115,6 +115,21 @@ namespace Http.Resilience.Tests
             httpRequestException.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
             retryOnExceptionHits.Should().Be(maxRetries);
+        }
+
+        [Fact]
+        public void ShouldThrowExceptionIfRetryOnExceptionIsCalledMoreThanOnce()
+        {
+            // Arrange
+            var httpRetryHelper = new HttpRetryHelper()
+                .RetryOnException<HttpRequestException>(ex => true);
+
+            // Act
+            Action action = () => httpRetryHelper.RetryOnException<HttpRequestException>(ex => true);
+
+            // Assert
+            var invalidOperationException = action.Should().Throw<InvalidOperationException>().Which;
+            invalidOperationException.Message.Should().Be("RetryOnException cannot be called more than once");
         }
     }
 }
