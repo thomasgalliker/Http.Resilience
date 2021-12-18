@@ -1,5 +1,5 @@
 ####################################################################
-# Editor Configuration (Updated 2021-10-03)
+# Editor Configuration (Updated 2021-12-16)
 #
 # (c)2021 superdev GmbH
 ####################################################################
@@ -136,3 +136,5 @@ dotnet_naming_symbols.static_fields.applicable_accessibilities = *
 dotnet_naming_symbols.static_fields.required_modifiers = static
 dotnet_naming_style.static_field_style.capitalization = pascal_case
 
+# CS4014: Because this call is not awaited, execution of the current method continues before the call is completed
+dotnet_diagnostic.CS4014.severity = error
