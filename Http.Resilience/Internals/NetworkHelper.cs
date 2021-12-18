@@ -14,20 +14,11 @@ namespace Http.Resilience.Internals
         ///  Heuristic used to determine whether an exception is a transient network failure
         ///  that should be retried.
         /// </summary>
-        internal static bool IsTransientNetworkException(Exception ex, int statusCode)
-        {
-            return IsTransientNetworkException(ex, statusCode, HttpRetryOptions.Default);
-        }
-
-        /// <summary>
-        ///  Heuristic used to determine whether an exception is a transient network failure
-        ///  that should be retried.
-        /// </summary>
-        internal static bool IsTransientNetworkException(Exception ex, int statusCode, HttpRetryOptions httpRetryOptions)
+        internal static bool IsTransientNetworkException(Exception ex, HttpResponseMessage httpResponseMessage, HttpRetryOptions httpRetryOptions)
         {
             while (ex != null)
             {
-                if (IsTransientNetworkExceptionHelper(ex, statusCode, httpRetryOptions))
+                if (IsTransientNetworkExceptionHelper(ex, httpResponseMessage, httpRetryOptions))
                 {
                     return true;
                 }
@@ -42,23 +33,17 @@ namespace Http.Resilience.Internals
         ///  Heuristic used to determine whether an exception is a transient network failure
         ///  that should be retried.
         /// </summary>
-        private static bool IsTransientNetworkExceptionHelper(Exception ex, int statusCode, HttpRetryOptions options)
+        private static bool IsTransientNetworkExceptionHelper(Exception ex, HttpResponseMessage httpResponseMessage, HttpRetryOptions options)
         {
-            if (ex is HttpRequestException)
+            if (ex is HttpRequestException && httpResponseMessage != null)
             {
-                if (options.RetryableStatusCodes.Contains((HttpStatusCode)statusCode))
-                {
-                    return true;
-                }
+                return options.IsRetryableResponse(httpResponseMessage);
             }
             else if (ex is WebException webException)
             {
                 if (webException.Response is HttpWebResponse httpWebResponse)
                 {
-                    if (options.RetryableStatusCodes.Contains(httpWebResponse.StatusCode))
-                    {
-                        return true;
-                    }
+                    return options.IsRetryableResponse(httpWebResponse);
                 }
 
                 if (webException.Status == WebExceptionStatus.ConnectFailure ||
@@ -141,6 +126,7 @@ namespace Http.Resilience.Internals
                 }
             }
 
+            // Last resort: Request is not retryable!
             return false;
         }
     }

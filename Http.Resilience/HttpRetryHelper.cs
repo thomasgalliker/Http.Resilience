@@ -91,6 +91,8 @@ namespace Http.Resilience
 
             while (true)
             {
+                var remainingAttempts = CalculateRemainingAttempts(currentAttempt, maxAttempts);
+
                 try
                 {
                     this.Log(LogLevel.Debug, $"Starting InvokeAsync... (Attempt {currentAttempt}/{maxAttempts})");
@@ -104,6 +106,17 @@ namespace Http.Resilience
                         {
                             httpResponseMessage.EnsureSuccessStatusCode();
                         }
+                        else
+                        {
+                            if (HasRemainingAttempts(remainingAttempts) && 
+                                this.options.IsRetryableResponse(httpResponseMessage))
+                            {
+                                await this.SleepAsync(remainingAttempts);
+                                currentAttempt++;
+                                this.Log(LogLevel.Info, $"InvokeAsync --> Retry on HttpResponseMessage.StatusCode={(int)httpResponseMessage.StatusCode} ({httpResponseMessage.StatusCode})");
+                                continue;
+                            }
+                        }
                     }
 
                     this.Log(currentAttempt <= 1 ? LogLevel.Debug : LogLevel.Info, $"InvokeAsync finished successfully (Attempt {currentAttempt}/{maxAttempts})");
@@ -113,18 +126,25 @@ namespace Http.Resilience
                 {
                     this.Log(LogLevel.Error, $"InvokeAsync failed with exception (Attempt {currentAttempt}/{maxAttempts})");
 
-                    var remainingAttempts = maxAttempts - currentAttempt;
-                    if (remainingAttempts > 0 && (NetworkHelper.IsTransientNetworkException(ex, lastStatusCode, this.options) || this.canRetryDelegate != null && this.canRetryDelegate(ex)))
+                    var lastHttpResponseMessage = lastResult as HttpResponseMessage;
+                    if (HasRemainingAttempts(remainingAttempts) && 
+                        (NetworkHelper.IsTransientNetworkException(ex, lastHttpResponseMessage, this.options) || this.canRetryDelegate != null && this.canRetryDelegate(ex)))
                     {
                         await this.SleepAsync(remainingAttempts);
                         currentAttempt++;
-                        this.Log(LogLevel.Info, $"InvokeAsync --> Retry");
+                        this.Log(LogLevel.Info, $"InvokeAsync --> Retry on {ex.GetType().Name}");
                         continue;
                     }
 
                     throw;
                 }
             }
+        }
+
+        private static bool HasRemainingAttempts(int remainingAttempts) => remainingAttempts > 0;
+        private static int CalculateRemainingAttempts(int currentAttempt, int maxAttempts)
+        {
+            return maxAttempts - currentAttempt;
         }
 
         private async Task SleepAsync(int remainingAttempts)
@@ -147,6 +167,11 @@ namespace Http.Resilience
         /// </summary>
         public HttpRetryHelper RetryOnException(Func<Exception, bool> handler)
         {
+            if (this.canRetryDelegate != null)
+            {
+                throw new InvalidOperationException($"{nameof(RetryOnException)} cannot be called more than once");
+            }
+
             this.canRetryDelegate = handler;
             return this;
         }

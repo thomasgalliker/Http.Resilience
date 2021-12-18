@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Http.Resilience.Extensions;
 
 namespace Http.Resilience.Internals
 {
@@ -20,7 +22,7 @@ namespace Http.Resilience.Internals
         /// </summary>
         /// <param name="response">The response to check if we should retry the request.</param>
         /// <returns>False if we should retry, true if we should not based on the response.</returns>
-        public delegate bool HttpRetryableStatusCodeFilter(HttpResponseMessage response);
+        public delegate bool HttpResponseMessageFilter(int statusCode, IEnumerable<KeyValuePair<string, IEnumerable<string>>> headers);
 
         private int isReadOnly;
         private int maxRetries;
@@ -28,7 +30,7 @@ namespace Http.Resilience.Internals
         private TimeSpan maxBackoff;
         private TimeSpan backoffCoefficient;
         private ICollection<HttpStatusCode> retryableStatusCodes;
-        private ICollection<HttpRetryableStatusCodeFilter> retryFilters;
+        private ICollection<HttpResponseMessageFilter> httpResponseMessageFilters;
         private bool ensureSuccessStatusCode = true;
 
         private static readonly TimeSpan DefaultMinBackoff = TimeSpan.FromSeconds(1d);
@@ -41,20 +43,20 @@ namespace Http.Resilience.Internals
             return new HttpRetryOptions().MakeReadonly();
         });
 
-        private static readonly HttpRetryableStatusCodeFilter hostShutdownFilter = (response) =>
+        private static readonly HttpResponseMessageFilter hostShutdownFilter = (statusCode, headers) =>
         {
-            return response.Headers.Contains("X-VSS-HostOfflineError");
+            return headers.Any(h => h.Key == "X-VSS-HostOfflineError");
         };
 
         public HttpRetryOptions()
-            : this(new HttpRetryableStatusCodeFilter[1]
+            : this(new HttpResponseMessageFilter[1]
             {
                 hostShutdownFilter
             })
         {
         }
 
-        public HttpRetryOptions(IEnumerable<HttpRetryableStatusCodeFilter> filters)
+        public HttpRetryOptions(IEnumerable<HttpResponseMessageFilter> filters)
         {
             this.BackoffCoefficient = DefaultBackoffCoefficient;
             this.MinBackoff = DefaultMinBackoff;
@@ -66,7 +68,7 @@ namespace Http.Resilience.Internals
                 HttpStatusCode.GatewayTimeout,
                 HttpStatusCode.ServiceUnavailable
             };
-            this.retryFilters = new HashSet<HttpRetryableStatusCodeFilter>(filters);
+            this.httpResponseMessageFilters = new HashSet<HttpResponseMessageFilter>(filters);
         }
 
         /// <summary>
@@ -165,15 +167,33 @@ namespace Http.Resilience.Internals
         /// <summary>
         /// How to verify that the response can be retried.
         /// </summary>
-        /// <param name="response">Response message from a request.</param>
+        /// <param name="httpResponseMessage">Response message from a request.</param>
         /// <returns>True if the request can be retried, false otherwise.</returns>
-        public bool IsRetryableResponse(HttpResponseMessage response)
+        public bool IsRetryableResponse(HttpResponseMessage httpResponseMessage)
         {
-            if (this.retryableStatusCodes.Contains(response.StatusCode))
+            if (this.retryableStatusCodes.Contains(httpResponseMessage.StatusCode))
             {
-                foreach (var retryFilter in this.retryFilters)
+                foreach (var filter in this.httpResponseMessageFilters)
                 {
-                    if (retryFilter(response))
+                    if (filter((int)httpResponseMessage.StatusCode, httpResponseMessage.Headers))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            return false;
+        }
+
+        public bool IsRetryableResponse(HttpWebResponse httpWebResponse)
+        {
+            if (this.retryableStatusCodes.Contains(httpWebResponse.StatusCode))
+            {
+                foreach (var filter in this.httpResponseMessageFilters)
+                {
+                    if (filter((int)httpWebResponse.StatusCode, httpWebResponse.Headers.GetHeaders()))
                     {
                         return false;
                     }
@@ -194,7 +214,7 @@ namespace Http.Resilience.Internals
             if (Interlocked.CompareExchange(ref this.isReadOnly, 1, 0) == 0)
             {
                 this.retryableStatusCodes = new ReadOnlyCollection<HttpStatusCode>(this.retryableStatusCodes.ToList());
-                this.retryFilters = new ReadOnlyCollection<HttpRetryableStatusCodeFilter>(this.retryFilters.ToList());
+                this.httpResponseMessageFilters = new ReadOnlyCollection<HttpResponseMessageFilter>(this.httpResponseMessageFilters.ToList());
             }
 
             return this;
