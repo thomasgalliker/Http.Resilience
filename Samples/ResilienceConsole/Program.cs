@@ -24,9 +24,12 @@ namespace ResilienceConsole
         private static async Task Example1()
         {
             var httpClient = new HttpClient();
-            var requestUri = "https://quotes.rest/qod?language=en";
+            var requestUri = "https://quotes.rest/qod2?language=en";
 
             var httpRetryHelper = new HttpRetryHelper(maxRetries: 3);
+            httpRetryHelper.Options.EnsureSuccessStatusCode = false;
+            //httpRetryHelper.Options.EnsureSuccessStatusCode = true;
+            httpRetryHelper.Options.RetryableStatusCodes.Add(HttpStatusCode.NotFound);
 
             try
             {
