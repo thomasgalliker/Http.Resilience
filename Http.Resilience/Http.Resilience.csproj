@@ -10,7 +10,7 @@
 		<AssemblyName>Http.Resilience</AssemblyName>
 		<PackageId>Http.Resilience</PackageId>
 		<PackageTags>retry;resilience;resilient;fault;failure;http;handler</PackageTags>
-		<PackageIconUrl>https://raw.githubusercontent.com/thomasgalliker/Http.Resilience/master/Http.Resilience.png</PackageIconUrl>
+		<PackageIconUrl>https://github.com/thomasgalliker/Http.Resilience/raw/develop/logo.png</PackageIconUrl>
 		<PackageProjectUrl>https://github.com/thomasgalliker/Http.Resilience</PackageProjectUrl>
 		<PackageLicenseUrl>http://opensource.org/licenses/Apache-2.0</PackageLicenseUrl>
 		<RepositoryType>git</RepositoryType>
