@@ -6,7 +6,7 @@
 Http.Resilience adds fault tolerance to any HTTP request. It can be used together with C# HttpClient, WebRequest or any other HTTP client. Transient network failures are automatically catched and a configurable number of retries is issued.
 
 ### Download and Install Http.Resilience
-This library is available on NuGet: https://www.nuget.org/packages/Http.Resilience/
+This library is available on NuGet: https://www.nuget.org/packages/Http.Resilience
 Use the following command to install Http.Resilience using NuGet package manager console:
 
     PM> Install-Package Http.Resilience
