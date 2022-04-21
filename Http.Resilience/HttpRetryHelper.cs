@@ -46,42 +46,42 @@ namespace Http.Resilience
         /// <summary>
         ///     Calls <paramref name="action" /> synchronously.
         /// </summary>
-        public void Invoke(Action action)
+        public void Invoke(Action action, string functionName = nameof(Invoke))
         {
             AsyncHelper.RunSync(() => this.InvokeAsync(() =>
             {
                 action();
                 return Task.FromResult<object>(null);
-            }));
+            }, functionName));
         }
 
         /// <summary>
         ///     Calls <paramref name="function" /> synchronously and returns <typeparamref name="TResult" />.
         /// </summary>
-        public TResult Invoke<TResult>(Func<TResult> function)
+        public TResult Invoke<TResult>(Func<TResult> function, string functionName = nameof(Invoke))
         {
             return AsyncHelper.RunSync(() => this.InvokeAsync(() =>
             {
                 return Task.FromResult(function());
-            }));
+            }, functionName));
         }
 
         /// <summary>
         ///     Calls <paramref name="function" /> asynchronously.
         /// </summary>
-        public async Task InvokeAsync(Func<Task> function)
+        public async Task InvokeAsync(Func<Task> function, string functionName = nameof(InvokeAsync))
         {
             await this.InvokeAsync<object>(async () =>
             {
                 await function();
                 return Task.FromResult<object>(null);
-            });
+            }, functionName);
         }
 
         /// <summary>
         ///     Calls <paramref name="function" /> asynchronously and returns <typeparamref name="TResult" />.
         /// </summary>
-        public async Task<TResult> InvokeAsync<TResult>(Func<Task<TResult>> function)
+        public async Task<TResult> InvokeAsync<TResult>(Func<Task<TResult>> function, string functionName = nameof(InvokeAsync))
         {
             var currentAttempt = 1;
             var maxAttempts = this.Options.MaxRetries + 1;
@@ -93,7 +93,7 @@ namespace Http.Resilience
 
                 try
                 {
-                    this.Log(LogLevel.Debug, $"Starting request... (Attempt {currentAttempt}/{maxAttempts})");
+                    this.Log(LogLevel.Debug, $"Starting {functionName}... (Attempt {currentAttempt}/{maxAttempts})");
 
                     lastResult = await function();
                     if (lastResult is HttpResponseMessage httpResponseMessage)
@@ -102,25 +102,25 @@ namespace Http.Resilience
                     }
 
                     this.Log(LogLevel.Debug,
-                        $"InvokeAsync finished successfully (Attempt {currentAttempt}/{maxAttempts})");
+                        $"{functionName} finished successfully (Attempt {currentAttempt}/{maxAttempts})");
                     return lastResult;
                 }
                 catch (Exception ex)
                 {
                     var hasRemainingAttempts = HasRemainingAttempts(remainingAttempts);
-                    
+
                     this.Log(hasRemainingAttempts ? LogLevel.Debug : LogLevel.Error,
-                        $"Request failed with exception (Attempt {currentAttempt}/{maxAttempts})");
+                        $"{functionName} failed with exception (Attempt {currentAttempt}/{maxAttempts})");
 
                     var lastHttpResponseMessage = lastResult as HttpResponseMessage;
                     var retry = hasRemainingAttempts &&
                                 (NetworkHelper.IsTransientNetworkException(ex, lastHttpResponseMessage, this.Options) ||
-                                (this.canRetryDelegate != null && this.canRetryDelegate(ex)));
+                                 (this.canRetryDelegate != null && this.canRetryDelegate(ex)));
                     if (retry)
                     {
                         await this.SleepAsync(remainingAttempts);
                         currentAttempt++;
-                        this.Log(LogLevel.Info, $"InvokeAsync --> Retry on {ex.GetType().Name}");
+                        this.Log(LogLevel.Info, $"{functionName} --> Retry on {ex.GetType().Name}");
                         continue;
                     }
 
