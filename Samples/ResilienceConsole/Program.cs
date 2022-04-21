@@ -4,6 +4,8 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Http.Resilience;
 using Http.Resilience.Internals;
+using Http.Resilience.Logging;
+using ResilienceConsole.Logging;
 
 namespace ResilienceConsole
 {
@@ -14,7 +16,7 @@ namespace ResilienceConsole
             Console.WriteLine("Http.Resilience Sample Console App");
             Console.WriteLine();
 
-            Http.Resilience.Internals.Logging.Logger.SetLogger(new ConsoleLogger());
+            Logger.SetLogger(new ConsoleLogger());
 
             // Example 1:
             // Everything is okay. The first attempty succeeds
