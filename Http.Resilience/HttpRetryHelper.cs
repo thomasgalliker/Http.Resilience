@@ -46,13 +46,18 @@ namespace Http.Resilience
         /// <summary>
         ///     Calls <paramref name="action" /> synchronously.
         /// </summary>
-        public void Invoke(Action action, string functionName = nameof(Invoke))
-        {
+        public void Invoke(Action action, string actionName = nameof(Invoke))
+        {  
+            if (action == null)
+            {
+                throw new ArgumentNullException(nameof(action));
+            }
+
             AsyncHelper.RunSync(() => this.InvokeAsync(() =>
             {
                 action();
                 return Task.FromResult<object>(null);
-            }, functionName));
+            }, actionName));
         }
 
         /// <summary>
@@ -60,6 +65,11 @@ namespace Http.Resilience
         /// </summary>
         public TResult Invoke<TResult>(Func<TResult> function, string functionName = nameof(Invoke))
         {
+            if (function == null)
+            {
+                throw new ArgumentNullException(nameof(function));
+            }
+
             return AsyncHelper.RunSync(() => this.InvokeAsync(() =>
             {
                 return Task.FromResult(function());
@@ -71,6 +81,11 @@ namespace Http.Resilience
         /// </summary>
         public async Task InvokeAsync(Func<Task> function, string functionName = nameof(InvokeAsync))
         {
+            if (function == null)
+            {
+                throw new ArgumentNullException(nameof(function));
+            }
+            
             await this.InvokeAsync<object>(async () =>
             {
                 await function();
@@ -83,6 +98,16 @@ namespace Http.Resilience
         /// </summary>
         public async Task<TResult> InvokeAsync<TResult>(Func<Task<TResult>> function, string functionName = nameof(InvokeAsync))
         {
+            if (function == null)
+            {
+                throw new ArgumentNullException(nameof(function));
+            }
+            
+            if (string.IsNullOrEmpty(functionName))
+            {
+                throw new ArgumentNullException(nameof(functionName));
+            }
+            
             var currentAttempt = 1;
             var maxAttempts = this.Options.MaxRetries + 1;
             var lastResult = default(TResult);
@@ -139,6 +164,11 @@ namespace Http.Resilience
         /// </summary>
         public HttpRetryHelper RetryOnException(Func<Exception, bool> handler)
         {
+            if (handler == null)
+            {
+                throw new ArgumentNullException(nameof(handler));
+            }
+
             if (this.canRetryDelegate != null)
             {
                 throw new InvalidOperationException($"{nameof(RetryOnException)} cannot be called more than once");

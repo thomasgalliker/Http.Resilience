@@ -21,6 +21,31 @@ namespace Http.Resilience.Tests
             Logger.SetLogger(new TestOutputHelperLogger(testOutputHelper));
         }
 
+        [Theory]
+        [ClassData(typeof(NullArgumentTestData))]
+        public void Invoke_ShouldThrowArgumentNullException(Action action, string actionName, Type expectedExceptionType)
+        {
+            // Arrange
+            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper();
+
+            // Act
+            var func = () => httpRetryHelper.Invoke(action, actionName);
+
+            // Assert
+            var ex = func.Should().Throw<Exception>().Which;
+            ex.Should().BeOfType(expectedExceptionType);
+        }
+
+        public class NullArgumentTestData : TheoryData<Action, string, Type>
+        {
+            public NullArgumentTestData()
+            {
+                this.Add(null, null, typeof(ArgumentNullException));
+                this.Add(null, null, typeof(ArgumentNullException));
+                this.Add(() => { }, null, typeof(ArgumentNullException));
+            }
+        }
+
         [Fact]
         public void Invoke_ShouldReturnOK()
         {
