@@ -28,9 +28,8 @@
 		<Product>Http.Resilience</Product>
 		<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
 		<RootNamespace>Http.Resilience</RootNamespace>
-		<PackageReleaseNotes>
-			1.0.0
-			- Initial release
+		<PackageReleaseNotes>1.0.0
+- Initial release
 		</PackageReleaseNotes>
 		<Copyright>Copyright 2021</Copyright>
 	</PropertyGroup>
