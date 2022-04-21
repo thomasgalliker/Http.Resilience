@@ -93,7 +93,7 @@ namespace Http.Resilience
 
                 try
                 {
-                    this.Log(LogLevel.Debug, $"Starting InvokeAsync... (Attempt {currentAttempt}/{maxAttempts})");
+                    this.Log(LogLevel.Debug, $"Starting request... (Attempt {currentAttempt}/{maxAttempts})");
 
                     lastResult = await function();
                     if (lastResult is HttpResponseMessage httpResponseMessage)
@@ -101,19 +101,22 @@ namespace Http.Resilience
                         httpResponseMessage.EnsureSuccessStatusCode();
                     }
 
-                    this.Log(currentAttempt <= 1 ? LogLevel.Debug : LogLevel.Info,
+                    this.Log(LogLevel.Debug,
                         $"InvokeAsync finished successfully (Attempt {currentAttempt}/{maxAttempts})");
                     return lastResult;
                 }
                 catch (Exception ex)
                 {
-                    this.Log(LogLevel.Error,
-                        $"InvokeAsync failed with exception (Attempt {currentAttempt}/{maxAttempts})");
+                    var hasRemainingAttempts = HasRemainingAttempts(remainingAttempts);
+                    
+                    this.Log(hasRemainingAttempts ? LogLevel.Debug : LogLevel.Error,
+                        $"Request failed with exception (Attempt {currentAttempt}/{maxAttempts})");
 
                     var lastHttpResponseMessage = lastResult as HttpResponseMessage;
-                    if (HasRemainingAttempts(remainingAttempts) &&
-                        (NetworkHelper.IsTransientNetworkException(ex, lastHttpResponseMessage, this.Options) ||
-                         (this.canRetryDelegate != null && this.canRetryDelegate(ex))))
+                    var retry = hasRemainingAttempts &&
+                                (NetworkHelper.IsTransientNetworkException(ex, lastHttpResponseMessage, this.Options) ||
+                                (this.canRetryDelegate != null && this.canRetryDelegate(ex)));
+                    if (retry)
                     {
                         await this.SleepAsync(remainingAttempts);
                         currentAttempt++;
@@ -121,7 +124,7 @@ namespace Http.Resilience
                         continue;
                     }
 
-                    if (lastResult is HttpResponseMessage httpResponseMessage && !this.Options.EnsureSuccessStatusCode)
+                    if (lastHttpResponseMessage != null && !this.Options.EnsureSuccessStatusCode)
                     {
                         return lastResult;
                     }
