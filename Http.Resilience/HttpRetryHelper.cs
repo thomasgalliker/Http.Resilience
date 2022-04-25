@@ -18,8 +18,7 @@ namespace Http.Resilience
     {
         private readonly string instance = Guid.NewGuid().ToString().Substring(0, 5).ToUpperInvariant();
 
-        static readonly Lazy<IHttpRetryHelper> Implementation =
-            new Lazy<IHttpRetryHelper>(CreateInstance, LazyThreadSafetyMode.PublicationOnly);
+        static readonly Lazy<IHttpRetryHelper> Implementation = new Lazy<IHttpRetryHelper>(CreateInstance, LazyThreadSafetyMode.PublicationOnly);
 
         public static IHttpRetryHelper Current => Implementation.Value;
 
@@ -54,6 +53,7 @@ namespace Http.Resilience
         {
             this.Options = httpRetryOptions;
             
+            this.AddOrUpdateRetryPolicy(new HttpMessageResponseRetryPolicy(this.Options));
             this.AddOrUpdateRetryPolicy(new WebExceptionRetryPolicy(this.Options));
             this.AddOrUpdateRetryPolicy(new SocketExceptionRetryPolicy());
             this.AddOrUpdateRetryPolicy(new SystemIOExceptionRetryPolicy());
@@ -215,26 +215,9 @@ namespace Http.Resilience
                 throw new ArgumentNullException(nameof(handler));
             }
 
-            this.AddOrUpdateRetryPolicy(new RetryOnHttpMessageResponsePolicy(handler));
+            this.AddOrUpdateRetryPolicy(new HttpMessageResponseRetryPolicyDelegate(handler));
 
             return this;
-        }
-
-        private void AddOrUpdateRetryPolicy<T>(IRetryPolicy<T> retryPolicy)
-        {
-            if (retryPolicy == null)
-            {
-                throw new ArgumentNullException(nameof(retryPolicy));
-            }
-
-            if (this.retryPolicies.TryGetValue(typeof(T), out var policies))
-            {
-                policies.Add(retryPolicy);
-            }
-            else
-            {
-                this.retryPolicies.Add(typeof(T), new List<IRetryPolicy> { retryPolicy });
-            }
         }
 
         /// <summary>
@@ -247,7 +230,7 @@ namespace Http.Resilience
                 throw new ArgumentNullException(nameof(handler));
             }
 
-            this.AddOrUpdateRetryPolicy(new RetryOnExceptionPolicy(handler));
+            this.AddOrUpdateRetryPolicy(new ExceptionRetryPolicyDelegate(handler));
 
             return this;
         }
@@ -266,6 +249,23 @@ namespace Http.Resilience
 
                 return false;
             });
+        }
+
+        private void AddOrUpdateRetryPolicy<T>(IRetryPolicy<T> retryPolicy)
+        {
+            if (retryPolicy == null)
+            {
+                throw new ArgumentNullException(nameof(retryPolicy));
+            }
+
+            if (this.retryPolicies.TryGetValue(typeof(T), out var policies))
+            {
+                policies.Add(retryPolicy);
+            }
+            else
+            {
+                this.retryPolicies.Add(typeof(T), new List<IRetryPolicy> { retryPolicy });
+            }
         }
 
         private static bool HasRemainingAttempts(int remainingAttempts)

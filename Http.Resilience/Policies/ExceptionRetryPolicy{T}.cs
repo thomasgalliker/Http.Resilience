@@ -6,7 +6,7 @@ namespace Http.Resilience.Policies
     /// Retry policy which recursively evaluates against <typeparamref name="TException"/>.
     /// </summary>
     /// <typeparam name="TException">The exception type.</typeparam>
-    internal abstract class RetryOnExceptionRecursivePolicy<TException> : RetryPolicy<Exception> where TException : Exception
+    public abstract class ExceptionRetryPolicy<TException> : RetryPolicy<Exception> where TException : Exception
     {
         public override bool ShouldRetry(Exception ex)
         {

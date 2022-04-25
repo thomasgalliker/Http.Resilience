@@ -3,7 +3,7 @@ using Http.Resilience.Internals;
 
 namespace Http.Resilience.Policies
 {
-    internal class WebExceptionRetryPolicy : RetryOnExceptionRecursivePolicy<WebException>
+    internal class WebExceptionRetryPolicy : ExceptionRetryPolicy<WebException>
     {
         private readonly HttpRetryOptions options;
 

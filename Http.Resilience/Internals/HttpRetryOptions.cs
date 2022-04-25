@@ -23,10 +23,11 @@ namespace Http.Resilience.Internals
         /// <returns>False if we should retry, true if we should not based on the response.</returns>
         public delegate bool HttpResponseMessageFilter(int statusCode, IEnumerable<KeyValuePair<string, IEnumerable<string>>> headers);
 
+        private const int DefaultMaxRetries = 5;
+        
         private static readonly TimeSpan DefaultMinBackoff = TimeSpan.FromSeconds(1d);
         private static readonly TimeSpan DefaultMaxBackoff = TimeSpan.FromSeconds(10d);
         private static readonly TimeSpan DefaultBackoffCoefficient = TimeSpan.FromSeconds(1d);
-        private static readonly int DefaultMaxRetries = 5;
 
         private static readonly Lazy<HttpRetryOptions> DefaultOptions = new(() =>
         {

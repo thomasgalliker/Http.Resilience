@@ -2,7 +2,7 @@ using System.Net.Sockets;
 
 namespace Http.Resilience.Policies
 {
-    internal class SocketExceptionRetryPolicy : RetryOnExceptionRecursivePolicy<SocketException>
+    internal class SocketExceptionRetryPolicy : ExceptionRetryPolicy<SocketException>
     {
         protected override bool ShouldRetryOnException(SocketException socketException)
         {
