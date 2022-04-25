@@ -1,8 +1,12 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using Http.Resilience.Internals;
 using Http.Resilience.Logging;
+using Http.Resilience.Policies;
 
 namespace Http.Resilience
 {
@@ -14,7 +18,15 @@ namespace Http.Resilience
     {
         private readonly string instance = Guid.NewGuid().ToString().Substring(0, 5).ToUpperInvariant();
 
-        private Func<Exception, bool> canRetryDelegate;
+        static readonly Lazy<IHttpRetryHelper> Implementation =
+            new Lazy<IHttpRetryHelper>(CreateInstance, LazyThreadSafetyMode.PublicationOnly);
+
+        public static IHttpRetryHelper Current => Implementation.Value;
+
+        private static IHttpRetryHelper CreateInstance()
+        {
+            return new HttpRetryHelper();
+        }
 
         /// <summary>
         ///     Creates an instance of <seealso cref="HttpRetryHelper" /> with default <seealso cref="HttpRetryOptions" />.
@@ -39,6 +51,11 @@ namespace Http.Resilience
         public HttpRetryHelper(HttpRetryOptions httpRetryOptions)
         {
             this.Options = httpRetryOptions;
+            
+            this.AddOrUpdateRetryPolicy(new WebExceptionRetryPolicy(this.Options));
+            this.AddOrUpdateRetryPolicy(new SocketExceptionRetryPolicy());
+            this.AddOrUpdateRetryPolicy(new SystemIOExceptionRetryPolicy());
+            this.AddOrUpdateRetryPolicy(new CurlExceptionRetryPolicy());
         }
 
         public HttpRetryOptions Options { get; }
@@ -47,7 +64,7 @@ namespace Http.Resilience
         ///     Calls <paramref name="action" /> synchronously.
         /// </summary>
         public void Invoke(Action action, string actionName = nameof(Invoke))
-        {  
+        {
             if (action == null)
             {
                 throw new ArgumentNullException(nameof(action));
@@ -85,7 +102,7 @@ namespace Http.Resilience
             {
                 throw new ArgumentNullException(nameof(function));
             }
-            
+
             await this.InvokeAsync<object>(async () =>
             {
                 await function();
@@ -96,18 +113,19 @@ namespace Http.Resilience
         /// <summary>
         ///     Calls <paramref name="function" /> asynchronously and returns <typeparamref name="TResult" />.
         /// </summary>
-        public async Task<TResult> InvokeAsync<TResult>(Func<Task<TResult>> function, string functionName = nameof(InvokeAsync))
+        public async Task<TResult> InvokeAsync<TResult>(Func<Task<TResult>> function,
+            string functionName = nameof(InvokeAsync))
         {
             if (function == null)
             {
                 throw new ArgumentNullException(nameof(function));
             }
-            
+
             if (string.IsNullOrEmpty(functionName))
             {
                 throw new ArgumentNullException(nameof(functionName));
             }
-            
+
             var currentAttempt = 1;
             var maxAttempts = this.Options.MaxRetries + 1;
             var lastResult = default(TResult);
@@ -139,8 +157,9 @@ namespace Http.Resilience
 
                     var lastHttpResponseMessage = lastResult as HttpResponseMessage;
                     var retry = hasRemainingAttempts &&
-                                (NetworkHelper.IsTransientNetworkException(ex, lastHttpResponseMessage, this.Options) ||
-                                 (this.canRetryDelegate != null && this.canRetryDelegate(ex)));
+                                (this.EvaluateRetryPolicies(ex) || this.EvaluateRetryPolicies(lastHttpResponseMessage))
+                        //NetworkHelper.IsTransientNetworkException(ex, lastHttpResponseMessage, this.Options)
+                        ;
                     if (retry)
                     {
                         await this.SleepAsync(remainingAttempts);
@@ -159,6 +178,65 @@ namespace Http.Resilience
             }
         }
 
+        private readonly IDictionary<Type, ICollection<IRetryPolicy>> retryPolicies = new Dictionary<Type, ICollection<IRetryPolicy>>();
+
+        private bool EvaluateRetryPolicies(object parameter)
+        {
+            if (parameter == null)
+            {
+                return false;
+            }
+            
+            var paramType = parameter.GetType();
+            var applicableRetryPolicies = this.retryPolicies
+                .Where(p => p.Key.IsAssignableFrom(paramType))
+                .SelectMany(p => p.Value)
+                .ToList();
+            
+            foreach (var retryPolicy in applicableRetryPolicies)
+            {
+                var shouldRetry = retryPolicy.ShouldRetry(parameter);
+                if (shouldRetry)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        ///     Custom retry decision logic if an unsuccessful http response is returned.
+        /// </summary>
+        public HttpRetryHelper RetryOnHttpMessageResponse(Func<HttpResponseMessage, bool> handler)
+        {
+            if (handler == null)
+            {
+                throw new ArgumentNullException(nameof(handler));
+            }
+
+            this.AddOrUpdateRetryPolicy(new RetryOnHttpMessageResponsePolicy(handler));
+
+            return this;
+        }
+
+        private void AddOrUpdateRetryPolicy<T>(RetryPolicy<T> retryPolicy)
+        {
+            if (retryPolicy == null)
+            {
+                throw new ArgumentNullException(nameof(retryPolicy));
+            }
+
+            if (this.retryPolicies.TryGetValue(typeof(T), out var policies))
+            {
+                policies.Add(retryPolicy);
+            }
+            else
+            {
+                this.retryPolicies.Add(typeof(T), new List<IRetryPolicy> { retryPolicy });
+            }
+        }
+
         /// <summary>
         ///     Custom retry decision logic if an exception occurred.
         /// </summary>
@@ -169,12 +247,8 @@ namespace Http.Resilience
                 throw new ArgumentNullException(nameof(handler));
             }
 
-            if (this.canRetryDelegate != null)
-            {
-                throw new InvalidOperationException($"{nameof(RetryOnException)} cannot be called more than once");
-            }
+            this.AddOrUpdateRetryPolicy(new RetryOnExceptionPolicy(handler));
 
-            this.canRetryDelegate = handler;
             return this;
         }
 

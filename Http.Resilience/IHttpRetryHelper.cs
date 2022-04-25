@@ -1,4 +1,5 @@
 using System;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Http.Resilience.Internals;
 
@@ -37,5 +38,7 @@ namespace Http.Resilience
         ///     Custom retry decision logic if an exception of type <typeparamref name="TException" /> occurred.
         /// </summary>
         HttpRetryHelper RetryOnException<TException>(Func<TException, bool> handler) where TException : Exception;
+
+        HttpRetryHelper RetryOnHttpMessageResponse(Func<HttpResponseMessage, bool> handler);
     }
 }

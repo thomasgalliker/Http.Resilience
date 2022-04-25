@@ -21,8 +21,7 @@ namespace Http.Resilience.Internals
         /// </summary>
         /// <param name="response">The response to check if we should retry the request.</param>
         /// <returns>False if we should retry, true if we should not based on the response.</returns>
-        public delegate bool HttpResponseMessageFilter(int statusCode,
-            IEnumerable<KeyValuePair<string, IEnumerable<string>>> headers);
+        public delegate bool HttpResponseMessageFilter(int statusCode, IEnumerable<KeyValuePair<string, IEnumerable<string>>> headers);
 
         private static readonly TimeSpan DefaultMinBackoff = TimeSpan.FromSeconds(1d);
         private static readonly TimeSpan DefaultMaxBackoff = TimeSpan.FromSeconds(10d);
@@ -161,50 +160,35 @@ namespace Http.Resilience.Internals
         /// <returns>True if the request can be retried, false otherwise.</returns>
         public bool IsRetryableResponse(HttpResponseMessage httpResponseMessage)
         {
+            var isRetryFiltered = false;
             var hasRetryableStatusCode = this.retryableStatusCodes.Contains(httpResponseMessage.StatusCode);
-
-            var isRetryFiltered = this.IsRetryFiltered(httpResponseMessage);
+            if (hasRetryableStatusCode)
+            {
+                isRetryFiltered = this.IsRetryFiltered((int)httpResponseMessage.StatusCode, httpResponseMessage.Headers);
+            }
 
             return hasRetryableStatusCode && !isRetryFiltered;
         }
-
 
         public bool IsRetryableResponse(HttpWebResponse httpWebResponse)
         {
+            var isRetryFiltered = false;
             var hasRetryableStatusCode = this.retryableStatusCodes.Contains(httpWebResponse.StatusCode);
-
-            var isRetryFiltered = this.IsRetryFiltered(httpWebResponse);
+            if (hasRetryableStatusCode)
+            {
+                isRetryFiltered = this.IsRetryFiltered((int)httpWebResponse.StatusCode, httpWebResponse.Headers.GetHeaders());
+            }
 
             return hasRetryableStatusCode && !isRetryFiltered;
         }
 
-        private bool IsRetryFiltered(HttpResponseMessage httpResponseMessage)
+        private bool IsRetryFiltered(int statusCode, IEnumerable<KeyValuePair<string, IEnumerable<string>>> headers)
         {
             foreach (var filter in this.httpResponseMessageFilters)
             {
                 try
                 {
-                    if (filter((int)httpResponseMessage.StatusCode, httpResponseMessage.Headers))
-                    {
-                        return true;
-                    }
-                }
-                catch
-                {
-                    // Ignored
-                }
-            }
-
-            return false;
-        }
-
-        private bool IsRetryFiltered(HttpWebResponse httpWebResponse)
-        {
-            foreach (var filter in this.httpResponseMessageFilters)
-            {
-                try
-                {
-                    if (filter((int)httpWebResponse.StatusCode, httpWebResponse.Headers.GetHeaders()))
+                    if (filter(statusCode, headers))
                     {
                         return true;
                     }
@@ -227,7 +211,8 @@ namespace Http.Resilience.Internals
             if (Interlocked.CompareExchange(ref this.isReadOnly, 1, 0) == 0)
             {
                 this.retryableStatusCodes = new ReadOnlyCollection<HttpStatusCode>(this.retryableStatusCodes.ToList());
-                this.httpResponseMessageFilters = new ReadOnlyCollection<HttpResponseMessageFilter>(this.httpResponseMessageFilters.ToList());
+                this.httpResponseMessageFilters =
+                    new ReadOnlyCollection<HttpResponseMessageFilter>(this.httpResponseMessageFilters.ToList());
             }
 
             return this;
