@@ -265,7 +265,7 @@ namespace Http.Resilience.Tests
         }
 
         [Fact]
-        public void Invoke_EnsureSuccessStatusCode_Enabled()
+        public void Invoke_ShouldNotRetry_EnsureSuccessStatusCode_Enabled()
         {
             // Arrange
             IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(3);
@@ -287,7 +287,7 @@ namespace Http.Resilience.Tests
         }
 
         [Fact]
-        public void Invoke_EnsureSuccessStatusCode_Disabled()
+        public void Invoke_ShouldNotRetry_EnsureSuccessStatusCode_Disabled()
         {
             // Arrange
             IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(3);

@@ -19,7 +19,7 @@ namespace Http.Resilience.Internals
         ///     Returns false if we should continue retrying based on the response, and true
         ///     if we should not, even though this is technically a retryable status code.
         /// </summary>
-        /// <param name="response">The response to check if we should retry the request.</param>
+        /// <param name="statusCode">The response status code to check if we should retry the request.</param>
         /// <returns>False if we should retry, true if we should not based on the response.</returns>
         public delegate bool HttpResponseMessageFilter(int statusCode, IEnumerable<KeyValuePair<string, IEnumerable<string>>> headers);
 
@@ -62,7 +62,9 @@ namespace Http.Resilience.Internals
             this.MaxRetries = DefaultMaxRetries;
             this.RetryableStatusCodes = new HashSet<HttpStatusCode>
             {
-                HttpStatusCode.BadGateway, HttpStatusCode.GatewayTimeout, HttpStatusCode.ServiceUnavailable
+                HttpStatusCode.BadGateway,
+                HttpStatusCode.GatewayTimeout,
+                HttpStatusCode.ServiceUnavailable
             };
             this.httpResponseMessageFilters = new HashSet<HttpResponseMessageFilter>(filters);
         }
@@ -142,7 +144,8 @@ namespace Http.Resilience.Internals
         }
 
         /// <summary>
-        ///     Gets a set of HTTP status codes which should be retried.
+        /// Gets a set of HTTP status codes which should be retried.
+        /// (Default: <seealso cref="HttpStatusCode.BadGateway"/>, <seealso cref="HttpStatusCode.GatewayTimeout"/>, <seealso cref="HttpStatusCode.ServiceUnavailable"/>)
         /// </summary>
         public ICollection<HttpStatusCode> RetryableStatusCodes
         {
@@ -162,7 +165,7 @@ namespace Http.Resilience.Internals
         public bool IsRetryableResponse(HttpResponseMessage httpResponseMessage)
         {
             var isRetryFiltered = false;
-            var hasRetryableStatusCode = this.retryableStatusCodes.Contains(httpResponseMessage.StatusCode);
+            var hasRetryableStatusCode = this.RetryableStatusCodes.Contains(httpResponseMessage.StatusCode);
             if (hasRetryableStatusCode)
             {
                 isRetryFiltered = this.IsRetryFiltered((int)httpResponseMessage.StatusCode, httpResponseMessage.Headers);
@@ -174,7 +177,7 @@ namespace Http.Resilience.Internals
         public bool IsRetryableResponse(HttpWebResponse httpWebResponse)
         {
             var isRetryFiltered = false;
-            var hasRetryableStatusCode = this.retryableStatusCodes.Contains(httpWebResponse.StatusCode);
+            var hasRetryableStatusCode = this.RetryableStatusCodes.Contains(httpWebResponse.StatusCode);
             if (hasRetryableStatusCode)
             {
                 isRetryFiltered = this.IsRetryFiltered((int)httpWebResponse.StatusCode, httpWebResponse.Headers.GetHeaders());
@@ -212,8 +215,7 @@ namespace Http.Resilience.Internals
             if (Interlocked.CompareExchange(ref this.isReadOnly, 1, 0) == 0)
             {
                 this.retryableStatusCodes = new ReadOnlyCollection<HttpStatusCode>(this.retryableStatusCodes.ToList());
-                this.httpResponseMessageFilters =
-                    new ReadOnlyCollection<HttpResponseMessageFilter>(this.httpResponseMessageFilters.ToList());
+                this.httpResponseMessageFilters = new ReadOnlyCollection<HttpResponseMessageFilter>(this.httpResponseMessageFilters.ToList());
             }
 
             return this;
@@ -226,8 +228,7 @@ namespace Http.Resilience.Internals
         {
             if (this.isReadOnly > 0)
             {
-                throw new InvalidOperationException(
-                    $"{nameof(HttpRetryOptions)} is marked as readonly; '{propertyName}' cannot be changed.");
+                throw new InvalidOperationException($"{nameof(HttpRetryOptions)} is marked as readonly; '{propertyName}' cannot be changed.");
             }
         }
     }
