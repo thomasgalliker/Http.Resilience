@@ -50,7 +50,7 @@ namespace Http.Resilience.Internals
         private ICollection<HttpStatusCode> retryableStatusCodes;
 
         public HttpRetryOptions()
-            : this(new HttpResponseMessageFilter[1] { HostShutdownFilter })
+            : this(new[] { HostShutdownFilter })
         {
         }
 
@@ -191,6 +191,7 @@ namespace Http.Resilience.Internals
                 }
                 catch
                 {
+                    // Ignored
                 }
             }
 
@@ -210,6 +211,7 @@ namespace Http.Resilience.Internals
                 }
                 catch
                 {
+                    // Ignored
                 }
             }
 
@@ -225,8 +227,7 @@ namespace Http.Resilience.Internals
             if (Interlocked.CompareExchange(ref this.isReadOnly, 1, 0) == 0)
             {
                 this.retryableStatusCodes = new ReadOnlyCollection<HttpStatusCode>(this.retryableStatusCodes.ToList());
-                this.httpResponseMessageFilters =
-                    new ReadOnlyCollection<HttpResponseMessageFilter>(this.httpResponseMessageFilters.ToList());
+                this.httpResponseMessageFilters = new ReadOnlyCollection<HttpResponseMessageFilter>(this.httpResponseMessageFilters.ToList());
             }
 
             return this;
