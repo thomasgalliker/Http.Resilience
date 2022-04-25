@@ -170,6 +170,7 @@ namespace Http.Resilience.Tests
             // Assert
             response.Should().NotBeNull();
             response.StatusCode.Should().Be(HttpStatusCode.OK);
+            attempts.Should().BeEmpty();
         }
 
         [Fact]
@@ -190,6 +191,7 @@ namespace Http.Resilience.Tests
             // Assert
             response.Should().NotBeNull();
             response.StatusCode.Should().Be(HttpStatusCode.OK);
+            attempts.Should().BeEmpty();
         }
 
         public class CurlException : Exception
@@ -224,6 +226,7 @@ namespace Http.Resilience.Tests
             // Assert
             response.Should().NotBeNull();
             response.StatusCode.Should().Be(HttpStatusCode.OK);
+            attempts.Should().BeEmpty();
         }
 
         /// <summary>
@@ -258,6 +261,7 @@ namespace Http.Resilience.Tests
             // Assert
             var httpRequestException = action.Should().Throw<HttpRequestException>().Which;
             httpRequestException.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+            attempts.Should().HaveCount(1);
         }
 
         [Fact]
@@ -279,6 +283,7 @@ namespace Http.Resilience.Tests
             // Assert
             var httpRequestException = action.Should().Throw<HttpRequestException>().Which;
             httpRequestException.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+            attempts.Should().HaveCount(1);
         }
 
         [Fact]
@@ -300,6 +305,7 @@ namespace Http.Resilience.Tests
             // Assert
             var response = action.Should().NotThrow().Which;
             response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+            attempts.Should().HaveCount(1);
         }
 
         [Fact]
@@ -320,6 +326,7 @@ namespace Http.Resilience.Tests
             // Assert
             var httpRequestException = (await action.Should().ThrowAsync<HttpRequestException>()).Which;
             httpRequestException.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+            attempts.Should().HaveCount(1);
         }
 
         [Fact]
@@ -341,6 +348,7 @@ namespace Http.Resilience.Tests
             // Assert
             var httpRequestException = action.Should().Throw<WebException>().Which;
             httpRequestException.Response.Should().BeAssignableTo<HttpWebResponse>();
+            attempts.Should().HaveCount(1);
         }
 
         private static HttpResponseMessage CreateHttpResponseMessage_WithHostOfflineErrorHeaders(HttpStatusCode httpStatusCode)

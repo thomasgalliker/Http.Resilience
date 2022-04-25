@@ -28,6 +28,8 @@ namespace Http.Resilience
             return new HttpRetryHelper();
         }
 
+        private readonly IDictionary<Type, ICollection<IRetryPolicy>> retryPolicies = new Dictionary<Type, ICollection<IRetryPolicy>>();
+
         /// <summary>
         ///     Creates an instance of <seealso cref="HttpRetryHelper" /> with default <seealso cref="HttpRetryOptions" />.
         /// </summary>
@@ -177,9 +179,7 @@ namespace Http.Resilience
                 }
             }
         }
-
-        private readonly IDictionary<Type, ICollection<IRetryPolicy>> retryPolicies = new Dictionary<Type, ICollection<IRetryPolicy>>();
-
+        
         private bool EvaluateRetryPolicies(object parameter)
         {
             if (parameter == null)
@@ -220,7 +220,7 @@ namespace Http.Resilience
             return this;
         }
 
-        private void AddOrUpdateRetryPolicy<T>(RetryPolicy<T> retryPolicy)
+        private void AddOrUpdateRetryPolicy<T>(IRetryPolicy<T> retryPolicy)
         {
             if (retryPolicy == null)
             {

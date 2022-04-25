@@ -2,9 +2,13 @@ using System;
 
 namespace Http.Resilience.Policies
 {
+    /// <summary>
+    /// Retry policy which recursively evaluates against <typeparamref name="TException"/>.
+    /// </summary>
+    /// <typeparam name="TException">The exception type.</typeparam>
     internal abstract class RetryOnExceptionRecursivePolicy<TException> : RetryPolicy<Exception> where TException : Exception
     {
-        protected override bool ShouldRetry(Exception ex)
+        public override bool ShouldRetry(Exception ex)
         {
             if (ex == null)
             {
@@ -13,7 +17,7 @@ namespace Http.Resilience.Policies
 
             do
             {
-                if (ex is TException typedEx && this.ShouldRetryRecursively(typedEx))
+                if (ex is TException typedEx && this.ShouldRetryOnException(typedEx))
                 {
                     return true;
                 }
@@ -24,6 +28,6 @@ namespace Http.Resilience.Policies
             return false;
         }
         
-        protected abstract bool ShouldRetryRecursively(TException parameter);
+        protected abstract bool ShouldRetryOnException(TException parameter);
     }
 }

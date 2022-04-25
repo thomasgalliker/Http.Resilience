@@ -12,7 +12,7 @@ namespace Http.Resilience.Policies
             this.options = options;
         }
 
-        protected override bool ShouldRetryRecursively(WebException webException)
+        protected override bool ShouldRetryOnException(WebException webException)
         {
             if (webException.Response is HttpWebResponse httpWebResponse)
             {

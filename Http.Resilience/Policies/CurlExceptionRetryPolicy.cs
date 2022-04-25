@@ -5,7 +5,7 @@ namespace Http.Resilience.Policies
 {
     internal class CurlExceptionRetryPolicy : RetryOnExceptionRecursivePolicy<Exception>
     {
-        protected override bool ShouldRetryRecursively(Exception ex)
+        protected override bool ShouldRetryOnException(Exception ex)
         {
             if (ex.GetType().Name == "CurlException" && ex.HResult > 0 && ex.HResult < 94)
             {

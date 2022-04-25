@@ -6,7 +6,7 @@ namespace Http.Resilience.Policies
 {
     internal class SystemIOExceptionRetryPolicy : RetryOnExceptionRecursivePolicy<IOException>
     {
-        protected override bool ShouldRetryRecursively(IOException ioException)
+        protected override bool ShouldRetryOnException(IOException ioException)
         {
             if (ioException.InnerException is Win32Exception)
             {

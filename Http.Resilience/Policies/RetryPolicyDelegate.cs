@@ -2,7 +2,7 @@ using System;
 
 namespace Http.Resilience.Policies
 {
-    public class RetryPolicyDelegate<TParameter> : RetryPolicy<TParameter>
+    internal class RetryPolicyDelegate<TParameter> : RetryPolicy<TParameter>
     {
         private readonly Func<TParameter, bool> handler;
 
@@ -11,7 +11,7 @@ namespace Http.Resilience.Policies
             this.handler = handler;
         }
 
-        protected override bool ShouldRetry(TParameter parameter)
+        public override bool ShouldRetry(TParameter parameter)
         {
             return this.handler(parameter);
         }

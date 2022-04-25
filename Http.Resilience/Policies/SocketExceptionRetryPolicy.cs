@@ -4,7 +4,7 @@ namespace Http.Resilience.Policies
 {
     internal class SocketExceptionRetryPolicy : RetryOnExceptionRecursivePolicy<SocketException>
     {
-        protected override bool ShouldRetryRecursively(SocketException socketException)
+        protected override bool ShouldRetryOnException(SocketException socketException)
         {
             if (socketException.SocketErrorCode == SocketError.Interrupted ||
                 socketException.SocketErrorCode == SocketError.NetworkDown ||

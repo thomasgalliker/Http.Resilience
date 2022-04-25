@@ -1,6 +1,9 @@
 namespace Http.Resilience.Policies
 {
-    public abstract class RetryPolicy<TParameter> : IRetryPolicy
+    /// <summary>
+    /// Retry policy which checks against generic objects of type <typeparamref name="TParameter"/>.
+    /// </summary>
+    public abstract class RetryPolicy<TParameter> : IRetryPolicy<TParameter>
     {
         public bool ShouldRetry(object parameter)
         {
@@ -12,6 +15,6 @@ namespace Http.Resilience.Policies
             return false;
         }
 
-        protected abstract bool ShouldRetry(TParameter parameter);
+        public abstract bool ShouldRetry(TParameter parameter);
     }
 }
