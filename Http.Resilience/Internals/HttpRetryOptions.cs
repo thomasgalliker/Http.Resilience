@@ -164,23 +164,21 @@ namespace Http.Resilience.Internals
         /// <returns>True if the request can be retried, false otherwise.</returns>
         public bool IsRetryableResponse(HttpResponseMessage httpResponseMessage)
         {
-            var isRetryFiltered = false;
-            var hasRetryableStatusCode = this.RetryableStatusCodes.Contains(httpResponseMessage.StatusCode);
-            if (hasRetryableStatusCode)
-            {
-                isRetryFiltered = this.IsRetryFiltered((int)httpResponseMessage.StatusCode, httpResponseMessage.Headers);
-            }
-
-            return hasRetryableStatusCode && !isRetryFiltered;
+            return this.IsRetryableResponse(httpResponseMessage.StatusCode, httpResponseMessage.Headers);
         }
 
         public bool IsRetryableResponse(HttpWebResponse httpWebResponse)
         {
+            return this.IsRetryableResponse(httpWebResponse.StatusCode, httpWebResponse.Headers.GetHeaders());
+        }
+        
+        public bool IsRetryableResponse(HttpStatusCode statusCode, IEnumerable<KeyValuePair<string, IEnumerable<string>>> headers)
+        {
             var isRetryFiltered = false;
-            var hasRetryableStatusCode = this.RetryableStatusCodes.Contains(httpWebResponse.StatusCode);
+            var hasRetryableStatusCode = this.RetryableStatusCodes.Contains(statusCode);
             if (hasRetryableStatusCode)
             {
-                isRetryFiltered = this.IsRetryFiltered((int)httpWebResponse.StatusCode, httpWebResponse.Headers.GetHeaders());
+                isRetryFiltered = this.IsRetryFiltered((int)statusCode, headers);
             }
 
             return hasRetryableStatusCode && !isRetryFiltered;
