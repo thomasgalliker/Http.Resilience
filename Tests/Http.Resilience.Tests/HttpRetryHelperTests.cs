@@ -108,6 +108,33 @@ namespace Http.Resilience.Tests
         }
 
         [Theory]
+        [InlineData(HttpStatusCode.BadGateway)]
+        [InlineData(HttpStatusCode.ServiceUnavailable)]
+        [InlineData(HttpStatusCode.GatewayTimeout)]
+        public void Invoke_ShouldRetry_WebExceptionWithRetryableStatusCode(HttpStatusCode httpStatusCode)
+        {
+            // Arrange
+            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(3);
+            
+            var httpWebResponseMock = new Mock<HttpWebResponse>();
+            httpWebResponseMock.Setup(r => r.StatusCode)
+                .Returns(httpStatusCode);
+
+            var attempts = new Queue<Func<HttpResponseMessage>>(new List<Func<HttpResponseMessage>>
+            {
+                () => throw new WebException("Test exception", new Exception("Test exception"), WebExceptionStatus.ProtocolError, httpWebResponseMock.Object),
+                () => new HttpResponseMessage(HttpStatusCode.OK),
+            });
+
+            // Act
+            var response = httpRetryHelper.Invoke(() => attempts.Dequeue()());
+
+            // Assert
+            response.Should().NotBeNull();
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        [Theory]
         [ClassData(typeof(WebExceptionStatusTestdata))]
         public void Invoke_ShouldRetry_WebException(WebExceptionStatus webExceptionStatus)
         {
@@ -241,6 +268,30 @@ namespace Http.Resilience.Tests
             }
 
             public override string StackTrace { get; }
+        }
+
+        [Theory]
+        [InlineData(HttpStatusCode.BadGateway)]
+        [InlineData(HttpStatusCode.ServiceUnavailable)]
+        [InlineData(HttpStatusCode.GatewayTimeout)]
+        public void Invoke_ShouldRetry_OnRetryableStatusCode(HttpStatusCode httpStatusCode)
+        {
+            // Arrange
+            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(3);
+
+            var attempts = new Queue<Func<HttpResponseMessage>>(new List<Func<HttpResponseMessage>>
+            {
+                () => new HttpResponseMessage(httpStatusCode),
+                () => new HttpResponseMessage(HttpStatusCode.OK),
+            });
+
+            // Act
+            var response = httpRetryHelper.Invoke(() => attempts.Dequeue()());
+
+            // Assert
+            response.Should().NotBeNull();
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            attempts.Should().BeEmpty();
         }
 
         [Fact]

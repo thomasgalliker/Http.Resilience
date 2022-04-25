@@ -63,8 +63,8 @@ namespace Http.Resilience.Internals
             this.RetryableStatusCodes = new HashSet<HttpStatusCode>
             {
                 HttpStatusCode.BadGateway,
-                HttpStatusCode.GatewayTimeout,
-                HttpStatusCode.ServiceUnavailable
+                HttpStatusCode.ServiceUnavailable,
+                HttpStatusCode.GatewayTimeout
             };
             this.httpResponseMessageFilters = new HashSet<HttpResponseMessageFilter>(filters);
         }
@@ -75,8 +75,9 @@ namespace Http.Resilience.Internals
         public static HttpRetryOptions Default => DefaultOptions.Value;
 
         /// <summary>
-        ///     Calls <seealso cref="HttpResponseMessage.EnsureSuccessStatusCode" /> on <seealso cref="HttpResponseMessage" />
-        ///     which converts an unsuccessful HTTP status code into a <seealso cref="HttpRequestException" /> (Default=true).
+        /// Calls <seealso cref="HttpResponseMessage.EnsureSuccessStatusCode" /> on <seealso cref="HttpResponseMessage" />
+        /// which converts an unsuccessful HTTP status code into a <seealso cref="HttpRequestException" />
+        /// (Default: true).
         /// </summary>
         public bool EnsureSuccessStatusCode
         {
@@ -145,7 +146,7 @@ namespace Http.Resilience.Internals
 
         /// <summary>
         /// Gets a set of HTTP status codes which should be retried.
-        /// (Default: <seealso cref="HttpStatusCode.BadGateway"/>, <seealso cref="HttpStatusCode.GatewayTimeout"/>, <seealso cref="HttpStatusCode.ServiceUnavailable"/>)
+        /// (Default: BadGateway/502, ServiceUnavailable/503, GatewayTimeout/504"/>)
         /// </summary>
         public ICollection<HttpStatusCode> RetryableStatusCodes
         {
