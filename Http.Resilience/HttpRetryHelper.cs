@@ -138,7 +138,7 @@ namespace Http.Resilience
 
                 try
                 {
-                    this.Log(LogLevel.Debug, $"Starting {functionName}... (Attempt {currentAttempt}/{maxAttempts})");
+                    this.Log(LogLevel.Info, $"Starting {functionName}... (Attempt {currentAttempt}/{maxAttempts})");
 
                     lastResult = await function();
                     if (lastResult is HttpResponseMessage httpResponseMessage)
@@ -146,7 +146,7 @@ namespace Http.Resilience
                         httpResponseMessage.EnsureSuccessStatusCode();
                     }
 
-                    this.Log(LogLevel.Debug,
+                    this.Log(LogLevel.Info,
                         $"{functionName} finished successfully (Attempt {currentAttempt}/{maxAttempts})");
                     return lastResult;
                 }
@@ -196,6 +196,7 @@ namespace Http.Resilience
             foreach (var retryPolicy in applicableRetryPolicies)
             {
                 var shouldRetry = retryPolicy.ShouldRetry(parameter);
+                this.Log(shouldRetry ? LogLevel.Info : LogLevel.Debug, $"{retryPolicy.GetType().Name}.ShouldRetry({parameter.GetType().Name}) returned {shouldRetry}");
                 if (shouldRetry)
                 {
                     return true;
