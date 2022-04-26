@@ -264,7 +264,9 @@ namespace Http.Resilience
             if (this.retryPolicies.TryGetValue(typeof(T), out var policies))
             {
                 var retryPolicyType = retryPolicy.GetType();
-                if (policies.Any(p => p.GetType() == retryPolicyType))
+                if (retryPolicyType != typeof(HttpMessageResponseRetryPolicyDelegate) && 
+                    retryPolicyType != typeof(ExceptionRetryPolicyDelegate) && 
+                    policies.Any(p => p.GetType() == retryPolicyType))
                 {
                     throw new InvalidOperationException($"Retry policy of type {retryPolicyType.Name} is already added.");
                 }
