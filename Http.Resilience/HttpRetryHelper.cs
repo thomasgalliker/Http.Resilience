@@ -55,7 +55,7 @@ namespace Http.Resilience
             
             this.AddOrUpdateRetryPolicy(new HttpMessageResponseRetryPolicy(this.Options));
             this.AddOrUpdateRetryPolicy(new WebExceptionRetryPolicy(this.Options));
-            this.AddOrUpdateRetryPolicy(new SocketExceptionRetryPolicy());
+            this.AddOrUpdateRetryPolicy(new SystemNetSocketExceptionRetryPolicy());
             this.AddOrUpdateRetryPolicy(new SystemIOExceptionRetryPolicy());
             this.AddOrUpdateRetryPolicy(new CurlExceptionRetryPolicy());
         }
