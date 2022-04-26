@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Collections.Specialized;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -12,47 +11,46 @@ using Http.Resilience.Extensions;
 namespace Http.Resilience.Internals
 {
     /// <summary>
-    /// Defines the options used for configuring the retry policy.
+    ///     Defines the options used for configuring the retry policy.
     /// </summary>
     public class HttpRetryOptions
     {
         /// <summary>
-        /// Returns false if we should continue retrying based on the response, and true
-        /// if we should not, even though this is technically a retryable status code.
+        ///     Returns false if we should continue retrying based on the response, and true
+        ///     if we should not, even though this is technically a retryable status code.
         /// </summary>
-        /// <param name="response">The response to check if we should retry the request.</param>
+        /// <param name="statusCode">The response status code to check if we should retry the request.</param>
         /// <returns>False if we should retry, true if we should not based on the response.</returns>
         public delegate bool HttpResponseMessageFilter(int statusCode, IEnumerable<KeyValuePair<string, IEnumerable<string>>> headers);
 
-        private int isReadOnly;
-        private int maxRetries;
-        private TimeSpan minBackoff;
-        private TimeSpan maxBackoff;
-        private TimeSpan backoffCoefficient;
-        private ICollection<HttpStatusCode> retryableStatusCodes;
-        private ICollection<HttpResponseMessageFilter> httpResponseMessageFilters;
-        private bool ensureSuccessStatusCode = true;
-
+        private const int DefaultMaxRetries = 5;
+        
         private static readonly TimeSpan DefaultMinBackoff = TimeSpan.FromSeconds(1d);
         private static readonly TimeSpan DefaultMaxBackoff = TimeSpan.FromSeconds(10d);
         private static readonly TimeSpan DefaultBackoffCoefficient = TimeSpan.FromSeconds(1d);
-        private static readonly int DefaultMaxRetries = 5;
 
-        private static readonly Lazy<HttpRetryOptions> DefaultOptions = new Lazy<HttpRetryOptions>(() =>
+        private static readonly Lazy<HttpRetryOptions> DefaultOptions = new(() =>
         {
             return new HttpRetryOptions().MakeReadonly();
         });
 
-        private static readonly HttpResponseMessageFilter hostShutdownFilter = (statusCode, headers) =>
+        private static readonly HttpResponseMessageFilter HostShutdownFilter = (statusCode, headers) =>
         {
             return headers.Any(h => h.Key == "X-VSS-HostOfflineError");
         };
 
+        private TimeSpan backoffCoefficient;
+        private bool ensureSuccessStatusCode = true;
+        private ICollection<HttpResponseMessageFilter> httpResponseMessageFilters;
+
+        private int isReadOnly;
+        private TimeSpan maxBackoff;
+        private int maxRetries;
+        private TimeSpan minBackoff;
+        private ICollection<HttpStatusCode> retryableStatusCodes;
+
         public HttpRetryOptions()
-            : this(new HttpResponseMessageFilter[1]
-            {
-                hostShutdownFilter
-            })
+            : this(new[] { HostShutdownFilter })
         {
         }
 
@@ -65,20 +63,21 @@ namespace Http.Resilience.Internals
             this.RetryableStatusCodes = new HashSet<HttpStatusCode>
             {
                 HttpStatusCode.BadGateway,
-                HttpStatusCode.GatewayTimeout,
-                HttpStatusCode.ServiceUnavailable
+                HttpStatusCode.ServiceUnavailable,
+                HttpStatusCode.GatewayTimeout
             };
             this.httpResponseMessageFilters = new HashSet<HttpResponseMessageFilter>(filters);
         }
 
         /// <summary>
-        /// Gets a singleton read-only instance of the default settings.
+        ///     Gets a singleton read-only instance of the default settings.
         /// </summary>
         public static HttpRetryOptions Default => DefaultOptions.Value;
 
         /// <summary>
-        /// Calls <seealso cref="HttpResponseMessage.EnsureSuccessStatusCode"/> on <seealso cref="HttpResponseMessage"/>
-        /// which converts an unsuccessful HTTP status code into a <seealso cref="HttpRequestException"/> (Default=true).
+        /// Calls <seealso cref="HttpResponseMessage.EnsureSuccessStatusCode" /> on <seealso cref="HttpResponseMessage" />
+        /// which converts an unsuccessful HTTP status code into a <seealso cref="HttpRequestException" />
+        /// (Default: true).
         /// </summary>
         public bool EnsureSuccessStatusCode
         {
@@ -91,7 +90,7 @@ namespace Http.Resilience.Internals
         }
 
         /// <summary>
-        /// Gets or sets the coefficient which exponentially increases the backoff starting at MinBackoff.
+        ///     Gets or sets the coefficient which exponentially increases the backoff starting at MinBackoff.
         /// </summary>
         public TimeSpan BackoffCoefficient
         {
@@ -104,7 +103,7 @@ namespace Http.Resilience.Internals
         }
 
         /// <summary>
-        /// Gets or sets the minimum backoff interval to be used.
+        ///     Gets or sets the minimum backoff interval to be used.
         /// </summary>
         public TimeSpan MinBackoff
         {
@@ -117,7 +116,7 @@ namespace Http.Resilience.Internals
         }
 
         /// <summary>
-        /// Gets or sets the maximum backoff interval to be used.
+        ///     Gets or sets the maximum backoff interval to be used.
         /// </summary>
         public TimeSpan MaxBackoff
         {
@@ -129,17 +128,11 @@ namespace Http.Resilience.Internals
             }
         }
 
-        // TODO:  Note that this was renamed from
-        //  "maxRetries" to match the behavior of the parameter (i.e. maxRetries was previously
-        //  behaving like maxAttempts).
-
-
         /// <summary>
-        /// Gets or sets the maximum number of retries allowed.
+        ///     Gets or sets the maximum number of retries for one particular request.
         /// </summary>
         /// <remarks>
-        /// This is the total number of attempts to invoke the submitted action with. A value of
-        //  1 indicates that no retries will be attempted.
+        ///     A value of 0 indicates that no retries will be attempted.
         /// </remarks>
         public int MaxRetries
         {
@@ -153,6 +146,7 @@ namespace Http.Resilience.Internals
 
         /// <summary>
         /// Gets a set of HTTP status codes which should be retried.
+        /// (Default: BadGateway/502, ServiceUnavailable/503, GatewayTimeout/504"/>)
         /// </summary>
         public ICollection<HttpStatusCode> RetryableStatusCodes
         {
@@ -165,48 +159,54 @@ namespace Http.Resilience.Internals
         }
 
         /// <summary>
-        /// How to verify that the response can be retried.
+        ///     Verifies if the request with the given <paramref name="httpResponseMessage" /> can be retried.
         /// </summary>
         /// <param name="httpResponseMessage">Response message from a request.</param>
         /// <returns>True if the request can be retried, false otherwise.</returns>
         public bool IsRetryableResponse(HttpResponseMessage httpResponseMessage)
         {
-            if (this.retryableStatusCodes.Contains(httpResponseMessage.StatusCode))
-            {
-                foreach (var filter in this.httpResponseMessageFilters)
-                {
-                    if (filter((int)httpResponseMessage.StatusCode, httpResponseMessage.Headers))
-                    {
-                        return false;
-                    }
-                }
-
-                return true;
-            }
-
-            return false;
+            return this.IsRetryableResponse(httpResponseMessage.StatusCode, httpResponseMessage.Headers);
         }
 
         public bool IsRetryableResponse(HttpWebResponse httpWebResponse)
         {
-            if (this.retryableStatusCodes.Contains(httpWebResponse.StatusCode))
+            return this.IsRetryableResponse(httpWebResponse.StatusCode, httpWebResponse.Headers.GetHeaders());
+        }
+        
+        public bool IsRetryableResponse(HttpStatusCode statusCode, IEnumerable<KeyValuePair<string, IEnumerable<string>>> headers)
+        {
+            var isRetryFiltered = false;
+            var hasRetryableStatusCode = this.RetryableStatusCodes.Contains(statusCode);
+            if (hasRetryableStatusCode)
             {
-                foreach (var filter in this.httpResponseMessageFilters)
+                isRetryFiltered = this.IsRetryFiltered((int)statusCode, headers);
+            }
+
+            return hasRetryableStatusCode && !isRetryFiltered;
+        }
+
+        private bool IsRetryFiltered(int statusCode, IEnumerable<KeyValuePair<string, IEnumerable<string>>> headers)
+        {
+            foreach (var filter in this.httpResponseMessageFilters)
+            {
+                try
                 {
-                    if (filter((int)httpWebResponse.StatusCode, httpWebResponse.Headers.GetHeaders()))
+                    if (filter(statusCode, headers))
                     {
-                        return false;
+                        return true;
                     }
                 }
-
-                return true;
+                catch
+                {
+                    // Ignored
+                }
             }
 
             return false;
         }
 
         /// <summary>
-        /// Ensures that no further modifications may be made to the retry options.
+        ///     Ensures that no further modifications may be made to the retry options.
         /// </summary>
         /// <returns>A read-only instance of the retry options</returns>
         public HttpRetryOptions MakeReadonly()
@@ -221,7 +221,7 @@ namespace Http.Resilience.Internals
         }
 
         /// <summary>
-        /// Throws an InvalidOperationException if this is marked as ReadOnly.
+        ///     Throws an InvalidOperationException if this is marked as ReadOnly.
         /// </summary>
         private void ThrowIfReadonly([CallerMemberName] string propertyName = "")
         {
