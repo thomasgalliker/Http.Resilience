@@ -3,6 +3,9 @@ using System.Reflection;
 
 namespace Http.Resilience.Policies
 {
+    /// <summary>
+    /// Checks if exception is NSErrorException with error code -1009.
+    /// </summary>
     public class NSErrorExceptionRetryPolicy : ExceptionRetryPolicy<Exception>
     {
         private const BindingFlags Flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.FlattenHierarchy;

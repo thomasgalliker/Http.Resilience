@@ -159,9 +159,7 @@ namespace Http.Resilience
 
                     var lastHttpResponseMessage = lastResult as HttpResponseMessage;
                     var retry = hasRemainingAttempts &&
-                                (this.EvaluateRetryPolicies(ex) || this.EvaluateRetryPolicies(lastHttpResponseMessage))
-                        //NetworkHelper.IsTransientNetworkException(ex, lastHttpResponseMessage, this.Options)
-                        ;
+                                (this.EvaluateRetryPolicies(lastHttpResponseMessage) || this.EvaluateRetryPolicies(ex));
                     if (retry)
                     {
                         await this.SleepAsync(remainingAttempts);
@@ -196,7 +194,7 @@ namespace Http.Resilience
             foreach (var retryPolicy in applicableRetryPolicies)
             {
                 var shouldRetry = retryPolicy.ShouldRetry(parameter);
-                this.Log(shouldRetry ? LogLevel.Info : LogLevel.Debug, $"{retryPolicy.GetType().Name}.ShouldRetry({parameter.GetType().Name}) returned {shouldRetry}");
+                this.Log(shouldRetry ? LogLevel.Info : LogLevel.Debug, $"{retryPolicy.GetType().Name}.ShouldRetry({paramType.Name}) returned {shouldRetry}");
                 if (shouldRetry)
                 {
                     return true;
@@ -208,13 +206,7 @@ namespace Http.Resilience
 
         public IHttpRetryHelper AddRetryPolicy<T>(IRetryPolicy<T> retryPolicy)
         {
-            if (retryPolicy == null)
-            {
-                throw new ArgumentNullException(nameof(retryPolicy));
-            }
-
             this.AddOrUpdateRetryPolicy(retryPolicy);
-
             return this;
         }
 
@@ -229,7 +221,6 @@ namespace Http.Resilience
             }
 
             this.AddOrUpdateRetryPolicy(new HttpMessageResponseRetryPolicyDelegate(handler));
-
             return this;
         }
 
@@ -244,7 +235,6 @@ namespace Http.Resilience
             }
 
             this.AddOrUpdateRetryPolicy(new ExceptionRetryPolicyDelegate(handler));
-
             return this;
         }
 
@@ -273,6 +263,12 @@ namespace Http.Resilience
 
             if (this.retryPolicies.TryGetValue(typeof(T), out var policies))
             {
+                var retryPolicyType = retryPolicy.GetType();
+                if (policies.Any(p => p.GetType() == retryPolicyType))
+                {
+                    throw new InvalidOperationException($"Retry policy of type {retryPolicyType.Name} is already added.");
+                }
+                
                 policies.Add(retryPolicy);
             }
             else

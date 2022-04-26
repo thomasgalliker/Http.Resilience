@@ -487,7 +487,7 @@ namespace Http.Resilience.Tests
         }
         
         [Fact]
-        public void ShouldAddRetryPolicy()
+        public void AddRetryPolicy_Success()
         {
             // Arrange
             IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(3)
@@ -507,6 +507,21 @@ namespace Http.Resilience.Tests
             var httpRequestException = action.Should().Throw<HttpRequestException>().Which;
             httpRequestException.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
             attempts.Should().HaveCount(1);
+        }
+        
+        [Fact]
+        public void AddRetryPolicy_FailsIfAlreadyAdded()
+        {
+            // Arrange
+            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(3);
+            httpRetryHelper.AddRetryPolicy(new JavaNetUnknownHostExceptionRetryPolicy());
+
+            // Act
+            Action action = () => httpRetryHelper.AddRetryPolicy(new JavaNetUnknownHostExceptionRetryPolicy());
+
+            // Assert
+            var invalidOperationException = action.Should().Throw<InvalidOperationException>().Which;
+            invalidOperationException.Message.Should().Contain("Retry policy of type JavaNetUnknownHostExceptionRetryPolicy is already added");
         }
     }
 }
