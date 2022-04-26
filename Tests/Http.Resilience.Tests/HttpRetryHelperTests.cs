@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Http.Resilience.Internals;
 using Http.Resilience.Logging;
+using Http.Resilience.Policies;
 using Http.Resilience.Tests.Logging;
 using Moq;
 using Xunit;
@@ -483,6 +484,29 @@ namespace Http.Resilience.Tests
             httpRequestException.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
             retryOnExceptionHits.Should().Be(maxRetries);
+        }
+        
+        [Fact]
+        public void ShouldAddRetryPolicy()
+        {
+            // Arrange
+            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(3)
+                .AddRetryPolicy(new NSErrorExceptionRetryPolicy())
+                .AddRetryPolicy(new NSUrlSessionHandlerTimeoutExceptionRetryPolicy());
+
+            var attempts = new Queue<Func<HttpResponseMessage>>(new List<Func<HttpResponseMessage>>
+            {
+                () => new HttpResponseMessage(HttpStatusCode.InternalServerError),
+                () => new HttpResponseMessage(HttpStatusCode.OK),
+            });
+
+            // Act
+            Action action = () => httpRetryHelper.Invoke(() => attempts.Dequeue()());
+
+            // Assert
+            var httpRequestException = action.Should().Throw<HttpRequestException>().Which;
+            httpRequestException.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+            attempts.Should().HaveCount(1);
         }
     }
 }

@@ -205,10 +205,22 @@ namespace Http.Resilience
             return false;
         }
 
+        public IHttpRetryHelper AddRetryPolicy<T>(IRetryPolicy<T> retryPolicy)
+        {
+            if (retryPolicy == null)
+            {
+                throw new ArgumentNullException(nameof(retryPolicy));
+            }
+
+            this.AddOrUpdateRetryPolicy(retryPolicy);
+
+            return this;
+        }
+
         /// <summary>
         ///     Custom retry decision logic if an unsuccessful http response is returned.
         /// </summary>
-        public HttpRetryHelper RetryOnHttpMessageResponse(Func<HttpResponseMessage, bool> handler)
+        public IHttpRetryHelper RetryOnHttpMessageResponse(Func<HttpResponseMessage, bool> handler)
         {
             if (handler == null)
             {
@@ -223,7 +235,7 @@ namespace Http.Resilience
         /// <summary>
         ///     Custom retry decision logic if an exception occurred.
         /// </summary>
-        public HttpRetryHelper RetryOnException(Func<Exception, bool> handler)
+        public IHttpRetryHelper RetryOnException(Func<Exception, bool> handler)
         {
             if (handler == null)
             {
@@ -238,7 +250,7 @@ namespace Http.Resilience
         /// <summary>
         ///     Custom retry decision logic if an exception of type <typeparamref name="TException" /> occurred.
         /// </summary>
-        public HttpRetryHelper RetryOnException<TException>(Func<TException, bool> handler) where TException : Exception
+        public IHttpRetryHelper RetryOnException<TException>(Func<TException, bool> handler) where TException : Exception
         {
             return this.RetryOnException(ex =>
             {
