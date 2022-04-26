@@ -9,7 +9,7 @@ using ResilienceConsole.Logging;
 
 namespace ResilienceConsole
 {
-    class Program
+    public static class Program
     {
         static async Task Main(string[] args)
         {
@@ -19,7 +19,7 @@ namespace ResilienceConsole
             Logger.SetLogger(new ConsoleLogger());
 
             // Example 1:
-            // Everything is okay. The first attempty succeeds
+            // Everything is okay. The first attempts succeeds
             // so that there is no further retry necessary.
             await Example1_OK();
 
