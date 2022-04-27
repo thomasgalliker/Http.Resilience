@@ -12,6 +12,9 @@ Use the following command to install Http.Resilience using NuGet package manager
 You can use this library in any .NET Standard or .NET Core project.
 
 ### API Usage
+`HttpRetryHelper` provides easy-to-use `Invoke` and `InvokeAsync` methods which support configurable retry behavior - not only for the wellknown HttpClient but also for other http clients such as WebRequest or WebClient.
+`HttpRetryHelper` is equipped with some good-practice retry logic but it also exposes configurability via `HttpRetryOptions`.
+
 #### Recover from transient network failure
 The following sample demonstrates a simple HTTP request using HttpClient. HttpRetryHelper is used to wrap httpClient.GetAsync(...). Whenever GetAsync(...) fails due to a transilient network failure, HttpRetryHelper attempts to recover the problem by repeatedly calling InvokeAsync.
 ```C#
