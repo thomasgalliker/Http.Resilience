@@ -33,12 +33,7 @@ namespace Http.Resilience
         /// <summary>
         ///     Custom retry decision logic if an exception occurred.
         /// </summary>
-        IHttpRetryHelper RetryOnException(Func<Exception, bool> handler);
-
-        /// <summary>
-        ///     Custom retry decision logic if an exception of type <typeparamref name="TException" /> occurred.
-        /// </summary>
-        IHttpRetryHelper RetryOnException<TException>(Func<TException, bool> handler) where TException : Exception;
+        IHttpRetryHelper RetryOnException(Func<Exception, bool> exceptionFilter);
 
         IHttpRetryHelper RetryOnHttpMessageResponse(Func<HttpResponseMessage, bool> handler);
         

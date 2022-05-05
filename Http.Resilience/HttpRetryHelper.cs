@@ -227,31 +227,15 @@ namespace Http.Resilience
         /// <summary>
         ///     Custom retry decision logic if an exception occurred.
         /// </summary>
-        public IHttpRetryHelper RetryOnException(Func<Exception, bool> handler)
+        public IHttpRetryHelper RetryOnException(Func<Exception, bool> exceptionFilter)
         {
-            if (handler == null)
+            if (exceptionFilter == null)
             {
-                throw new ArgumentNullException(nameof(handler));
+                throw new ArgumentNullException(nameof(exceptionFilter));
             }
 
-            this.AddOrUpdateRetryPolicy(new ExceptionRetryPolicyDelegate(handler));
+            this.AddOrUpdateRetryPolicy(new ExceptionRetryPolicyDelegate(exceptionFilter));
             return this;
-        }
-
-        /// <summary>
-        ///     Custom retry decision logic if an exception of type <typeparamref name="TException" /> occurred.
-        /// </summary>
-        public IHttpRetryHelper RetryOnException<TException>(Func<TException, bool> handler) where TException : Exception
-        {
-            return this.RetryOnException(ex =>
-            {
-                if (ex is TException tex)
-                {
-                    return handler(tex);
-                }
-
-                return false;
-            });
         }
 
         private void AddOrUpdateRetryPolicy<T>(IRetryPolicy<T> retryPolicy)
