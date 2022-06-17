@@ -61,5 +61,30 @@ catch (Exception ex)
 }
 ```
 
+#### Retry based on returned result
+Retries can also be carried out if a particular result is returned by Invoke/InvokeAsync.
+RetryOnResult delegate allows to evaluate the returned result and indicate if a retry is necessary (true=retry, false=do not retry).
+```C#
+var httpClient = new HttpClient();
+var requestUri = "https://yourapi/token/refresh";
+
+var httpRetryOptions = new HttpRetryOptions();
+httpRetryOptions.MaxRetries = 4;
+
+var httpRetryHelper = new HttpRetryHelper(httpRetryOptions);
+httpRetryHelper.RetryOnResult<RefreshTokenResult>(r => r.Error != "invalid_grant");
+
+try
+{
+    var refreshTokenResult = await httpRetryHelper.InvokeAsync(async () => await httpClient.PostAsync(requestUri, ...));
+    
+    // ...
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"{ex.Message}");
+}
+```
+
 ### License
 This project is Copyright &copy; 2022 [Thomas Galliker](https://ch.linkedin.com/in/thomasgalliker). Free for non-commercial use. For commercial use please contact the author.
