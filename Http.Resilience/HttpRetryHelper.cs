@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Http.Resilience.Extensions;
 using Http.Resilience.Internals;
 using Http.Resilience.Logging;
 using Http.Resilience.Policies;
@@ -18,7 +20,8 @@ namespace Http.Resilience
     {
         private readonly string instance = Guid.NewGuid().ToString().Substring(0, 5).ToUpperInvariant();
 
-        static readonly Lazy<IHttpRetryHelper> Implementation = new Lazy<IHttpRetryHelper>(CreateInstance, LazyThreadSafetyMode.PublicationOnly);
+        static readonly Lazy<IHttpRetryHelper> Implementation =
+            new Lazy<IHttpRetryHelper>(CreateInstance, LazyThreadSafetyMode.PublicationOnly);
 
         public static IHttpRetryHelper Current => Implementation.Value;
 
@@ -27,7 +30,8 @@ namespace Http.Resilience
             return new HttpRetryHelper();
         }
 
-        private readonly IDictionary<Type, ICollection<IRetryPolicy>> retryPolicies = new Dictionary<Type, ICollection<IRetryPolicy>>();
+        private readonly IDictionary<Type, ICollection<IRetryPolicy>> retryPolicies =
+            new Dictionary<Type, ICollection<IRetryPolicy>>();
 
         /// <summary>
         ///     Creates an instance of <seealso cref="HttpRetryHelper" /> with default <seealso cref="HttpRetryOptions" />.
@@ -52,7 +56,7 @@ namespace Http.Resilience
         public HttpRetryHelper(HttpRetryOptions httpRetryOptions)
         {
             this.Options = httpRetryOptions;
-            
+
             this.AddOrUpdateRetryPolicy(new HttpMessageResponseRetryPolicy(this.Options));
             this.AddOrUpdateRetryPolicy(new WebExceptionRetryPolicy(this.Options));
             this.AddOrUpdateRetryPolicy(new SystemNetSocketExceptionRetryPolicy());
@@ -61,6 +65,12 @@ namespace Http.Resilience
         }
 
         public HttpRetryOptions Options { get; }
+
+        public IReadOnlyDictionary<Type, ReadOnlyCollection<IRetryPolicy>> RetryPolicies
+        {
+            get => new ReadOnlyDictionary<Type, ReadOnlyCollection<IRetryPolicy>>(
+                this.retryPolicies.ToDictionary(k => k.Key, v => v.Value.ToList().AsReadOnly()));
+        }
 
         /// <summary>
         ///     Calls <paramref name="action" /> synchronously.
@@ -146,29 +156,45 @@ namespace Http.Resilience
                         httpResponseMessage.EnsureSuccessStatusCode();
                     }
 
+                    // Retry can be done based on the returned result
+                    var hasRemainingAttempts = HasRemainingAttempts(remainingAttempts);
+                    var shouldRetry = hasRemainingAttempts && this.EvaluateRetryPolicies(lastResult);
+                    if (shouldRetry)
+                    {
+                        await this.SleepAsync(remainingAttempts);
+                        currentAttempt++;
+                        this.Log(LogLevel.Info,
+                            $"{functionName} --> Retry on result {lastResult.GetType().GetFormattedClassName()}");
+                        continue;
+                    }
+
+                    // If no retry is necessary, we log a success message
+                    // and return the result
                     this.Log(LogLevel.Info,
                         $"{functionName} finished successfully (Attempt {currentAttempt}/{maxAttempts})");
+
                     return lastResult;
                 }
                 catch (Exception ex)
                 {
+                    // Retry can be done based on the thrown exception
                     var hasRemainingAttempts = HasRemainingAttempts(remainingAttempts);
 
                     this.Log(hasRemainingAttempts ? LogLevel.Debug : LogLevel.Error,
                         $"{functionName} failed with exception (Attempt {currentAttempt}/{maxAttempts})");
 
-                    var lastHttpResponseMessage = lastResult as HttpResponseMessage;
-                    var retry = hasRemainingAttempts &&
-                                (this.EvaluateRetryPolicies(lastHttpResponseMessage) || this.EvaluateRetryPolicies(ex));
-                    if (retry)
+                    var shouldRetry = hasRemainingAttempts &&
+                                      (this.EvaluateRetryPolicies(lastResult) || this.EvaluateRetryPolicies(ex));
+                    if (shouldRetry)
                     {
                         await this.SleepAsync(remainingAttempts);
                         currentAttempt++;
-                        this.Log(LogLevel.Info, $"{functionName} --> Retry on {ex.GetType().Name}");
+                        this.Log(LogLevel.Info,
+                            $"{functionName} --> Retry on exception {ex.GetType().GetFormattedClassName()}");
                         continue;
                     }
 
-                    if (lastHttpResponseMessage != null && !this.Options.EnsureSuccessStatusCode)
+                    if (lastResult is HttpResponseMessage && !this.Options.EnsureSuccessStatusCode)
                     {
                         return lastResult;
                     }
@@ -177,24 +203,25 @@ namespace Http.Resilience
                 }
             }
         }
-        
+
         private bool EvaluateRetryPolicies(object parameter)
         {
             if (parameter == null)
             {
                 return false;
             }
-            
+
             var paramType = parameter.GetType();
             var applicableRetryPolicies = this.retryPolicies
                 .Where(p => p.Key.IsAssignableFrom(paramType))
                 .SelectMany(p => p.Value)
                 .ToList();
-            
+
             foreach (var retryPolicy in applicableRetryPolicies)
             {
                 var shouldRetry = retryPolicy.ShouldRetry(parameter);
-                this.Log(shouldRetry ? LogLevel.Info : LogLevel.Debug, $"{retryPolicy.GetType().Name}.ShouldRetry({paramType.Name}) returned {shouldRetry}");
+                this.Log(shouldRetry ? LogLevel.Info : LogLevel.Debug,
+                    $"{retryPolicy.GetType().GetFormattedClassName()}.ShouldRetry({paramType.GetFormattedClassName()}) returned {shouldRetry}");
                 if (shouldRetry)
                 {
                     return true;
@@ -210,34 +237,6 @@ namespace Http.Resilience
             return this;
         }
 
-        /// <summary>
-        ///     Custom retry decision logic if an unsuccessful http response is returned.
-        /// </summary>
-        public IHttpRetryHelper RetryOnHttpMessageResponse(Func<HttpResponseMessage, bool> handler)
-        {
-            if (handler == null)
-            {
-                throw new ArgumentNullException(nameof(handler));
-            }
-
-            this.AddOrUpdateRetryPolicy(new HttpMessageResponseRetryPolicyDelegate(handler));
-            return this;
-        }
-
-        /// <summary>
-        ///     Custom retry decision logic if an exception occurred.
-        /// </summary>
-        public IHttpRetryHelper RetryOnException(Func<Exception, bool> exceptionFilter)
-        {
-            if (exceptionFilter == null)
-            {
-                throw new ArgumentNullException(nameof(exceptionFilter));
-            }
-
-            this.AddOrUpdateRetryPolicy(new ExceptionRetryPolicyDelegate(exceptionFilter));
-            return this;
-        }
-
         private void AddOrUpdateRetryPolicy<T>(IRetryPolicy<T> retryPolicy)
         {
             if (retryPolicy == null)
@@ -248,13 +247,14 @@ namespace Http.Resilience
             if (this.retryPolicies.TryGetValue(typeof(T), out var policies))
             {
                 var retryPolicyType = retryPolicy.GetType();
-                if (retryPolicyType != typeof(HttpMessageResponseRetryPolicyDelegate) && 
-                    retryPolicyType != typeof(ExceptionRetryPolicyDelegate) && 
+                if (retryPolicyType != typeof(HttpMessageResponseRetryPolicyDelegate) &&
+                    retryPolicyType != typeof(ExceptionRetryPolicyDelegate) &&
                     policies.Any(p => p.GetType() == retryPolicyType))
                 {
-                    throw new InvalidOperationException($"Retry policy of type {retryPolicyType.Name} is already added.");
+                    throw new InvalidOperationException(
+                        $"Retry policy of type {retryPolicyType.GetFormattedClassName()} is already added.");
                 }
-                
+
                 policies.Add(retryPolicy);
             }
             else

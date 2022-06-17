@@ -30,13 +30,6 @@ namespace Http.Resilience
         /// </summary>
         Task<TResult> InvokeAsync<TResult>(Func<Task<TResult>> function, string functionName = nameof(InvokeAsync));
 
-        /// <summary>
-        ///     Custom retry decision logic if an exception occurred.
-        /// </summary>
-        IHttpRetryHelper RetryOnException(Func<Exception, bool> exceptionFilter);
-
-        IHttpRetryHelper RetryOnHttpMessageResponse(Func<HttpResponseMessage, bool> handler);
-        
         IHttpRetryHelper AddRetryPolicy<T>(IRetryPolicy<T> retryPolicy);
     }
 }
