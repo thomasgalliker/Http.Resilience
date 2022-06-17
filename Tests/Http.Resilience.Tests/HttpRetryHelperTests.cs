@@ -11,6 +11,7 @@ using Http.Resilience.Internals;
 using Http.Resilience.Logging;
 using Http.Resilience.Policies;
 using Http.Resilience.Tests.Logging;
+using Http.Resilience.Tests.TestData;
 using Moq;
 using Xunit;
 using Xunit.Abstractions;
@@ -26,7 +27,8 @@ namespace Http.Resilience.Tests
 
         [Theory]
         [ClassData(typeof(NullArgumentTestData))]
-        public void Invoke_ShouldThrowArgumentNullException(Action action, string actionName, Type expectedExceptionType)
+        public void Invoke_ShouldThrowArgumentNullException(Action action, string actionName,
+            Type expectedExceptionType)
         {
             // Arrange
             IHttpRetryHelper httpRetryHelper = new HttpRetryHelper();
@@ -102,7 +104,11 @@ namespace Http.Resilience.Tests
             IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(3);
 
             // Act
-            await httpRetryHelper.InvokeAsync(() => { numberOfInvokes++; return Task.CompletedTask; });
+            await httpRetryHelper.InvokeAsync(() =>
+            {
+                numberOfInvokes++;
+                return Task.CompletedTask;
+            });
 
             // Assert
             numberOfInvokes.Should().Be(1);
@@ -116,14 +122,15 @@ namespace Http.Resilience.Tests
         {
             // Arrange
             IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(3);
-            
+
             var httpWebResponseMock = new Mock<HttpWebResponse>();
             httpWebResponseMock.Setup(r => r.StatusCode)
                 .Returns(httpStatusCode);
 
             var attempts = new Queue<Func<HttpResponseMessage>>(new List<Func<HttpResponseMessage>>
             {
-                () => throw new WebException("Test exception", new Exception("Test exception"), WebExceptionStatus.ProtocolError, httpWebResponseMock.Object),
+                () => throw new WebException("Test exception", new Exception("Test exception"),
+                    WebExceptionStatus.ProtocolError, httpWebResponseMock.Object),
                 () => new HttpResponseMessage(HttpStatusCode.OK),
             });
 
@@ -188,8 +195,7 @@ namespace Http.Resilience.Tests
 
             var attempts = new Queue<Func<HttpResponseMessage>>(new List<Func<HttpResponseMessage>>
             {
-                () => throw new SocketException((int)socketError),
-                () => new HttpResponseMessage(HttpStatusCode.OK),
+                () => throw new SocketException((int)socketError), () => new HttpResponseMessage(HttpStatusCode.OK),
             });
 
             // Act
@@ -209,7 +215,7 @@ namespace Http.Resilience.Tests
 
             var attempts = new Queue<Func<HttpResponseMessage>>(new List<Func<HttpResponseMessage>>
             {
-                () => throw new CurlException{ HResult = (int)CurlErrorCode.CURLE_COULDNT_RESOLVE_HOST },
+                () => throw new CurlException { HResult = (int)CurlErrorCode.CURLE_COULDNT_RESOLVE_HOST },
                 () => new HttpResponseMessage(HttpStatusCode.OK),
             });
 
@@ -235,14 +241,14 @@ namespace Http.Resilience.Tests
             var attempts = new Queue<Func<HttpResponseMessage>>(new List<Func<HttpResponseMessage>>
             {
                 () => throw new TestIOException(
-                    message: "Test IO Exception", 
+                    message: "Test IO Exception",
                     stackTrace: $"Object name: 'System.Net.Sockets.NetworkStream'.{Environment.NewLine}" +
                                 $"at System.Net.Sockets.NetworkStream.EndWrite(IAsyncResult asyncResult){Environment.NewLine}" +
                                 $"at System.Net.Security._SslStream.StartWriting(Byte[] buffer, Int32 offset, Int32 count, AsyncProtocolRequest asyncRequest){Environment.NewLine}" +
                                 $"at System.Net.Security._SslStream.ProcessWrite(Byte[] buffer, Int32 offset, Int32 count, AsyncProtocolRequest asyncRequest){Environment.NewLine}",
                     innerException: new Win32Exception("Test Win32 Exception")),
                 () => throw new TestIOException(
-                    message: "Unable to read data from the transport connection: The connection was closed", 
+                    message: "Unable to read data from the transport connection: The connection was closed",
                     stackTrace: "",
                     innerException: new Exception("Test Exception")),
                 () => new HttpResponseMessage(HttpStatusCode.OK),
@@ -282,8 +288,7 @@ namespace Http.Resilience.Tests
 
             var attempts = new Queue<Func<HttpResponseMessage>>(new List<Func<HttpResponseMessage>>
             {
-                () => new HttpResponseMessage(httpStatusCode),
-                () => new HttpResponseMessage(HttpStatusCode.OK),
+                () => new HttpResponseMessage(httpStatusCode), () => new HttpResponseMessage(HttpStatusCode.OK),
             });
 
             // Act
@@ -390,7 +395,8 @@ namespace Http.Resilience.Tests
 
             var attempts = new Queue<Func<HttpResponseMessage>>(new List<Func<HttpResponseMessage>>
             {
-                () => throw new WebException("Test exception",null, WebExceptionStatus.ProtocolError, httpWebResponse),
+                () => throw new WebException("Test exception", null, WebExceptionStatus.ProtocolError,
+                    httpWebResponse),
                 () => new HttpResponseMessage(HttpStatusCode.OK),
             });
 
@@ -403,7 +409,8 @@ namespace Http.Resilience.Tests
             attempts.Should().HaveCount(1);
         }
 
-        private static HttpResponseMessage CreateHttpResponseMessage_WithHostOfflineErrorHeaders(HttpStatusCode httpStatusCode)
+        private static HttpResponseMessage CreateHttpResponseMessage_WithHostOfflineErrorHeaders(
+            HttpStatusCode httpStatusCode)
         {
             var httpResponseMessage = new HttpResponseMessage(httpStatusCode);
             httpResponseMessage.Headers.Add("key1", new List<string> { "value1", "value2" });
@@ -420,9 +427,7 @@ namespace Http.Resilience.Tests
             httpWebResponseMock.SetupGet(x => x.Headers)
                 .Returns(new WebHeaderCollection
                 {
-                    { "key1", "value1" },
-                    { "key1", "value2" },
-                    { "X-VSS-HostOfflineError", null }
+                    { "key1", "value1" }, { "key1", "value2" }, { "X-VSS-HostOfflineError", null }
                 });
 
             httpWebResponseMock.Setup(x => x.GetResponseStream())
@@ -442,7 +447,8 @@ namespace Http.Resilience.Tests
             IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(maxRetries);
 
             // Act
-            var httpResponseMessage = await httpRetryHelper.InvokeAsync(async () => await httpClient.GetAsync(requestUri));
+            var httpResponseMessage =
+                await httpRetryHelper.InvokeAsync(async () => await httpClient.GetAsync(requestUri));
 
             // Assert
             httpResponseMessage.Should().NotBeNull();
@@ -461,23 +467,24 @@ namespace Http.Resilience.Tests
 
             IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(maxRetries);
             httpRetryHelper.RetryOnException<HttpRequestException>(ex =>
-                {
-                    retryOnExceptionHits++;
-                    return true;
-                });
+            {
+                retryOnExceptionHits++;
+                return true;
+            });
             httpRetryHelper.RetryOnException<WebException>(ex =>
-                {
-                    retryOnExceptionHits++;
-                    return true;
-                });
+            {
+                retryOnExceptionHits++;
+                return true;
+            });
             httpRetryHelper.RetryOnHttpMessageResponse(m =>
-                {
-                    retryOnExceptionHits++;
-                    return true;
-                });
+            {
+                retryOnExceptionHits++;
+                return true;
+            });
 
             // Act
-            Func<Task> action = async () => await httpRetryHelper.InvokeAsync(async () => await httpClient.GetAsync(requestUri));
+            Func<Task> action = async () =>
+                await httpRetryHelper.InvokeAsync(async () => await httpClient.GetAsync(requestUri));
 
             // Assert
             var httpRequestException = (await action.Should().ThrowAsync<HttpRequestException>()).Which;
@@ -485,12 +492,47 @@ namespace Http.Resilience.Tests
 
             retryOnExceptionHits.Should().Be(maxRetries);
         }
-        
+
+        [Fact]
+        public void Invoke_RetryOnResult()
+        {
+            // Arrange
+            const int maxRetries = 3;
+            var retryHits = 0;
+
+            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(maxRetries);
+            httpRetryHelper.RetryOnResult<ServiceResult>(r =>
+            {
+                if (r.ErrorMessage == "invalid_grant")
+                {
+                    return false;
+                }
+                
+                retryHits++;
+                return true;
+            });
+
+            var attempts = new Queue<Func<ServiceResult>>(new List<Func<ServiceResult>>
+            {
+                () => new ServiceResult { ErrorMessage = "error" },
+                () => new ServiceResult { ErrorMessage = "invalid_grant" },
+                () => new ServiceResult { ErrorMessage = null }
+            });
+
+            // Act
+            Action action = () => httpRetryHelper.Invoke(() => attempts.Dequeue()());
+
+            // Assert
+            action.Should().NotThrow();
+            retryHits.Should().Be(1);
+        }
+
         [Fact]
         public void AddRetryPolicy_Success()
         {
             // Arrange
-            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(3)
+            const int maxRetries = 3;
+            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(maxRetries)
                 .AddRetryPolicy(new NSErrorExceptionRetryPolicy())
                 .AddRetryPolicy(new NSUrlSessionHandlerTimeoutExceptionRetryPolicy());
 
@@ -508,12 +550,13 @@ namespace Http.Resilience.Tests
             httpRequestException.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
             attempts.Should().HaveCount(1);
         }
-        
+
         [Fact]
         public void AddRetryPolicy_FailsIfAlreadyAdded()
         {
             // Arrange
-            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(3);
+            const int maxRetries = 3;
+            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(maxRetries);
             httpRetryHelper.AddRetryPolicy(new JavaNetUnknownHostExceptionRetryPolicy());
 
             // Act
@@ -521,7 +564,8 @@ namespace Http.Resilience.Tests
 
             // Assert
             var invalidOperationException = action.Should().Throw<InvalidOperationException>().Which;
-            invalidOperationException.Message.Should().Contain("Retry policy of type JavaNetUnknownHostExceptionRetryPolicy is already added");
+            invalidOperationException.Message.Should()
+                .Contain("Retry policy of type JavaNetUnknownHostExceptionRetryPolicy is already added");
         }
     }
 }
