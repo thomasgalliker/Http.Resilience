@@ -29,6 +29,7 @@
 		<RootNamespace>Http.Resilience</RootNamespace>
 		<PackageReleaseNotes>1.1
 - Support retry policies for Exceptions and HttpResponseMessages
+- Add new retry handler RetryOnResult
 - Code cleanup
 
 1.0
