@@ -1,45 +1,53 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <Description>Resilience and transient fault handling for HTTP clients.</Description>
-        <AssemblyTitle>Http.Resilience</AssemblyTitle>
-        <VersionPrefix>1.0.0</VersionPrefix>
-        <Version>1.0.0</Version>
-        <Authors>Thomas Galliker</Authors>
-        <TargetFrameworks>net45;netstandard2.0;netstandard2.1</TargetFrameworks>
-        <AssemblyName>Http.Resilience</AssemblyName>
-        <PackageId>Http.Resilience</PackageId>
-        <PackageTags>retry;resilience;resilient;fault;failure;http;handler</PackageTags>
-        <PackageIconUrl>https://github.com/thomasgalliker/Http.Resilience/raw/develop/logo.png</PackageIconUrl>
-        <PackageProjectUrl>https://github.com/thomasgalliker/Http.Resilience</PackageProjectUrl>
-        <PackageLicenseUrl>http://opensource.org/licenses/Apache-2.0</PackageLicenseUrl>
-        <RepositoryType>git</RepositoryType>
-        <RepositoryUrl>https://github.com/thomasgalliker/Http.Resilience</RepositoryUrl>
-        <RuntimeIdentifiers>win10-x64</RuntimeIdentifiers>
-        <SignAssembly>True</SignAssembly>
-        <LangVersion>latest</LangVersion>
-    </PropertyGroup>
+	<PropertyGroup>
+		<Description>Resilience and transient fault handling for HTTP clients.</Description>
+		<AssemblyTitle>Http.Resilience</AssemblyTitle>
+		<VersionPrefix>1.0.0</VersionPrefix>
+		<Version>1.0.0</Version>
+		<Authors>Thomas Galliker</Authors>
+		<TargetFrameworks>net45;netstandard2.0;netstandard2.1</TargetFrameworks>
+		<AssemblyName>Http.Resilience</AssemblyName>
+		<PackageId>Http.Resilience</PackageId>
+		<PackageTags>retry;resilience;resilient;fault;failure;http;handler</PackageTags>
+		<PackageIconUrl>https://raw.githubusercontent.com/thomasgalliker/Http.Resilience/develop/logo.png</PackageIconUrl>
+		<PackageProjectUrl>https://github.com/thomasgalliker/Http.Resilience</PackageProjectUrl>
+		<PackageLicenseUrl>http://opensource.org/licenses/Apache-2.0</PackageLicenseUrl>
+		<RepositoryType>git</RepositoryType>
+		<RepositoryUrl>https://github.com/thomasgalliker/Http.Resilience</RepositoryUrl>
+		<SignAssembly>True</SignAssembly>
+		<LangVersion>latest</LangVersion>
+	</PropertyGroup>
 
-    <PropertyGroup>
-        <ApplicationIcon />
-        <OutputType>Library</OutputType>
-        <StartupObject />
-        <Company>superdev GmbH</Company>
-        <Product>Http.Resilience</Product>
-        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-        <RootNamespace>Http.Resilience</RootNamespace>
-        <PackageReleaseNotes>1.1
+	<PropertyGroup>
+		<ApplicationIcon />
+		<OutputType>Library</OutputType>
+		<StartupObject />
+		<Company>superdev GmbH</Company>
+		<Product>Http.Resilience</Product>
+		<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+		<RootNamespace>Http.Resilience</RootNamespace>
+		<PackageReleaseNotes>1.1
 - Support retry policies for Exceptions and HttpResponseMessages
+- Add new retry handler RetryOnResult
 - Code cleanup
 
 1.0
 - Initial release</PackageReleaseNotes>
-        <Copyright>Copyright 2022</Copyright>
-    </PropertyGroup>
+		<Copyright>Copyright 2022</Copyright>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+	</PropertyGroup>
 
-    <ItemGroup Condition=" '$(TargetFramework)' == 'net45' ">
-        <Reference Include="System" />
-        <Reference Include="System.Net.Http" />
-    </ItemGroup>
+	<ItemGroup Condition=" '$(TargetFramework)' == 'net45' ">
+		<Reference Include="System" />
+		<Reference Include="System.Net.Http" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="..\README.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
 
 </Project>
