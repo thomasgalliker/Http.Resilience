@@ -67,12 +67,15 @@ steps:
       FailOnWarning: false
       DisableTelemetry: false'
 
+ - task: UseDotNet@2
+   inputs:
+     version: '6.x'
+
   - task: NuGetToolInstaller@0
     displayName: 'Use NuGet 6.x'
     inputs:
       versionSpec: 6.x
 
-  - task: DotNetCoreCLI@2
     displayName: 'NuGet restore'
     inputs:
       command: restore
