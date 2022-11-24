@@ -445,8 +445,7 @@ namespace Http.Resilience.Tests
             IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(maxRetries);
 
             // Act
-            var httpResponseMessage =
-                await httpRetryHelper.InvokeAsync(async () => await httpClient.GetAsync(requestUri));
+            var httpResponseMessage = await httpRetryHelper.InvokeAsync(async () => await httpClient.GetAsync(requestUri));
 
             // Assert
             httpResponseMessage.Should().NotBeNull();
@@ -481,8 +480,7 @@ namespace Http.Resilience.Tests
             });
 
             // Act
-            Func<Task> action = async () =>
-                await httpRetryHelper.InvokeAsync(async () => await httpClient.GetAsync(requestUri));
+            Func<Task> action = async () => await httpRetryHelper.InvokeAsync(async () => await httpClient.GetAsync(requestUri));
 
             // Assert
             var httpRequestException = (await action.Should().ThrowAsync<HttpRequestException>()).Which;
