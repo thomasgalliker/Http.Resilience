@@ -20,8 +20,7 @@ namespace Http.Resilience
     {
         private readonly string instance = Guid.NewGuid().ToString().Substring(0, 5).ToUpperInvariant();
 
-        static readonly Lazy<IHttpRetryHelper> Implementation =
-            new Lazy<IHttpRetryHelper>(CreateInstance, LazyThreadSafetyMode.PublicationOnly);
+        static readonly Lazy<IHttpRetryHelper> Implementation = new Lazy<IHttpRetryHelper>(CreateInstance, LazyThreadSafetyMode.PublicationOnly);
 
         public static IHttpRetryHelper Current => Implementation.Value;
 
