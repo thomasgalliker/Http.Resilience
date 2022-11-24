@@ -66,7 +66,6 @@ namespace Http.Resilience.Tests
             response.StatusCode.Should().Be(HttpStatusCode.OK);
         }
 
-
         [Fact]
         public async Task InvokeAsync_ShouldReturnOK()
         {
@@ -395,8 +394,7 @@ namespace Http.Resilience.Tests
 
             var attempts = new Queue<Func<HttpResponseMessage>>(new List<Func<HttpResponseMessage>>
             {
-                () => throw new WebException("Test exception", null, WebExceptionStatus.ProtocolError,
-                    httpWebResponse),
+                () => throw new WebException("Test exception", null, WebExceptionStatus.ProtocolError, httpWebResponse),
                 () => new HttpResponseMessage(HttpStatusCode.OK),
             });
 
@@ -507,7 +505,7 @@ namespace Http.Resilience.Tests
                 {
                     return false;
                 }
-                
+
                 retryHits++;
                 return true;
             });

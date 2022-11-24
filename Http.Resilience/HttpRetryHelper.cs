@@ -20,7 +20,7 @@ namespace Http.Resilience
     {
         private readonly string instance = Guid.NewGuid().ToString().Substring(0, 5).ToUpperInvariant();
 
-        static readonly Lazy<IHttpRetryHelper> Implementation = new Lazy<IHttpRetryHelper>(CreateInstance, LazyThreadSafetyMode.PublicationOnly);
+        private static readonly Lazy<IHttpRetryHelper> Implementation = new Lazy<IHttpRetryHelper>(CreateInstance, LazyThreadSafetyMode.PublicationOnly);
 
         public static IHttpRetryHelper Current => Implementation.Value;
 
@@ -123,8 +123,7 @@ namespace Http.Resilience
         /// <summary>
         ///     Calls <paramref name="function" /> asynchronously and returns <typeparamref name="TResult" />.
         /// </summary>
-        public async Task<TResult> InvokeAsync<TResult>(Func<Task<TResult>> function,
-            string functionName = nameof(InvokeAsync))
+        public async Task<TResult> InvokeAsync<TResult>(Func<Task<TResult>> function, string functionName = nameof(InvokeAsync))
         {
             if (function == null)
             {
@@ -161,15 +160,13 @@ namespace Http.Resilience
                     {
                         await this.SleepAsync(remainingAttempts);
                         currentAttempt++;
-                        this.Log(LogLevel.Info,
-                            $"{functionName} --> Retry on result {lastResult.GetType().GetFormattedClassName()}");
+                        this.Log(LogLevel.Info, $"{functionName} --> Retry on result {lastResult.GetType().GetFormattedClassName()}");
                         continue;
                     }
 
                     // If no retry is necessary, we log a success message
                     // and return the result
-                    this.Log(LogLevel.Info,
-                        $"{functionName} finished successfully (Attempt {currentAttempt}/{maxAttempts})");
+                    this.Log(LogLevel.Info, $"{functionName} finished successfully (Attempt {currentAttempt}/{maxAttempts})");
 
                     return lastResult;
                 }
@@ -187,8 +184,7 @@ namespace Http.Resilience
                     {
                         await this.SleepAsync(remainingAttempts);
                         currentAttempt++;
-                        this.Log(LogLevel.Info,
-                            $"{functionName} --> Retry on exception {ex.GetType().GetFormattedClassName()}");
+                        this.Log(LogLevel.Info, $"{functionName} --> Retry on exception {ex.GetType().GetFormattedClassName()}");
                         continue;
                     }
 
