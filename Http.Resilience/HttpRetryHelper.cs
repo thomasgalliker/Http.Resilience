@@ -29,8 +29,7 @@ namespace Http.Resilience
             return new HttpRetryHelper();
         }
 
-        private readonly IDictionary<Type, ICollection<IRetryPolicy>> retryPolicies =
-            new Dictionary<Type, ICollection<IRetryPolicy>>();
+        private readonly IDictionary<Type, ICollection<IRetryPolicy>> retryPolicies = new Dictionary<Type, ICollection<IRetryPolicy>>();
 
         /// <summary>
         ///     Creates an instance of <seealso cref="HttpRetryHelper" /> with default <seealso cref="HttpRetryOptions" />.
