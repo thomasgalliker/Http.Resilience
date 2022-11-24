@@ -1,9 +1,11 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Diagnostics;
 
 namespace Http.Resilience.Logging
 {
-    public class DebugLogger : ILogger
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    internal class DebugLogger : ILogger
     {
         public void Log(LogLevel logLevel, string message)
         {

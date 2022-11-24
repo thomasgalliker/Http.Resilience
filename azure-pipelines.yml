@@ -26,7 +26,7 @@ variables:
   buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
   majorVersion: 1
-  minorVersion: 1
+  minorVersion: 2
   patchVersion: $[counter(format('{0}.{1}', variables.majorVersion, variables.minorVersion), 0)]
   ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/master') }}:
     # Versioning: 1.0.0
@@ -67,6 +67,11 @@ steps:
       FailOnWarning: false
       DisableTelemetry: false'
 
+  - task: UseDotNet@2
+    displayName: 'Use .NET 6.x'
+    inputs:
+      version: 6.x
+      
   - task: NuGetToolInstaller@0
     displayName: 'Use NuGet 6.x'
     inputs:
@@ -94,7 +99,7 @@ steps:
   - task: Palmmedia.reportgenerator.reportgenerator-build-release-task.reportgenerator@4
     displayName: 'Create Code Coverage Report'
     inputs:
-      reports: '$(Build.SourcesDirectory)/Tests/**/*.coverage.cobertura*.xml'
+      reports: '$(Build.SourcesDirectory)/Tests/**/*.coverage.cobertura.xml'
       targetdir: '$(Build.SourcesDirectory)/CodeCoverage'
       reporttypes: 'Cobertura'
       assemblyfilters: '-xunit*'
