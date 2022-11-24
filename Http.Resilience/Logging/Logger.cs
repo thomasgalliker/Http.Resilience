@@ -1,12 +1,14 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Threading;
 
 namespace Http.Resilience.Logging
 {
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public static class Logger
     {
         private static readonly Lazy<ILogger> DefaultLogger = new Lazy<ILogger>(CreateDefaultLogger, LazyThreadSafetyMode.PublicationOnly);
-        private static ILogger logger;
+        private static ILogger Instance;
 
         private static ILogger CreateDefaultLogger()
         {
@@ -15,9 +17,9 @@ namespace Http.Resilience.Logging
 
         public static void SetLogger(ILogger logger)
         {
-            Logger.logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            Logger.Instance = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public static ILogger Current => logger ?? DefaultLogger.Value;
+        internal static ILogger Current => Instance ?? DefaultLogger.Value;
     }
 }
