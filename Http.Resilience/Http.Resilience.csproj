@@ -9,8 +9,8 @@
 		<TargetFrameworks>net45;netstandard2.0;netstandard2.1</TargetFrameworks>
 		<AssemblyName>Http.Resilience</AssemblyName>
 		<PackageId>Http.Resilience</PackageId>
-		<PackageTags>retry;resilience;resilient;fault;failure;http;handler</PackageTags>
-		<PackageIconUrl>https://raw.githubusercontent.com/thomasgalliker/Http.Resilience/develop/logo.png</PackageIconUrl>
+		<PackageTags>retry;resilience;resilient;fault;failure;http;handler;HttpRetryHelper;ApiClient;ApiService</PackageTags>
+		<PackageIcon>logo.png</PackageIcon>
 		<PackageProjectUrl>https://github.com/thomasgalliker/Http.Resilience</PackageProjectUrl>
 		<PackageLicenseUrl>http://opensource.org/licenses/Apache-2.0</PackageLicenseUrl>
 		<RepositoryType>git</RepositoryType>
@@ -49,5 +49,7 @@
 			<PackagePath>\</PackagePath>
 		</None>
 	</ItemGroup>
-
+	<ItemGroup>
+		<None Include="../logo.png" Pack="true" PackagePath="\"/>
+	</ItemGroup>
 </Project>
