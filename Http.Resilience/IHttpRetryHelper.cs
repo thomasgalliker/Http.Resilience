@@ -1,7 +1,5 @@
 using System;
-using System.Net.Http;
 using System.Threading.Tasks;
-using Http.Resilience.Internals;
 using Http.Resilience.Policies;
 
 namespace Http.Resilience
