@@ -1,6 +1,6 @@
 ﻿namespace Http.Resilience.Internals
 {
-    public enum CurlErrorCode
+    internal enum CurlErrorCode
     {
         CURLE_OK = 0,
         CURLE_UNSUPPORTED_PROTOCOL = 1,

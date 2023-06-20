@@ -453,7 +453,11 @@ namespace Http.Resilience.Tests
             httpResponseMessage.StatusCode.Should().Be(HttpStatusCode.OK);
         }
 
-        [Fact(Skip = "Service currently not available")]
+        /// <summary>
+        /// Request requires authorization but we don't provide such,
+        /// so we experience an HTTP 401.
+        /// </summary>
+        [Fact]
         public async Task InvokeAsync_WithHttpClient_RetryOnException()
         {
             // Arrange

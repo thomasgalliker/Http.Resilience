@@ -1,5 +1,4 @@
 using System.Net;
-using Http.Resilience.Internals;
 
 namespace Http.Resilience.Policies
 {
