@@ -440,7 +440,7 @@ namespace Http.Resilience.Tests
             // Arrange
             const int maxRetries = 3;
             var httpClient = new HttpClient();
-            var requestUri = "https://quotes.rest/qod?language=en";
+            var requestUri = "http://worldtimeapi.org/api/timezone/Europe/Zurich";
 
             IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(maxRetries);
 
