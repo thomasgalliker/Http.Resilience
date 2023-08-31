@@ -3,7 +3,8 @@ using System;
 namespace Http.Resilience.Policies
 {
     /// <summary>
-    /// Retry policy which recursively evaluates against <typeparamref name="TException"/>.
+    /// Retry policy which recursively evaluates exceptions <typeparamref name="TException"/> and inner exceptions
+    /// for transient errors.
     /// </summary>
     /// <typeparam name="TException">The exception type.</typeparam>
     public abstract class ExceptionRetryPolicy<TException> : RetryPolicy<Exception> where TException : Exception
