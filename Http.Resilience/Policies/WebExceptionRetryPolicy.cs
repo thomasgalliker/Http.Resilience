@@ -2,7 +2,11 @@ using System.Net;
 
 namespace Http.Resilience.Policies
 {
-    internal class WebExceptionRetryPolicy : ExceptionRetryPolicy<WebException>
+    /// <summary>
+    /// Checks for <see cref="WebException"/> and the associated <see cref="HttpWebResponse"/> (if available)
+    /// or if the returned <see cref="WebExceptionStatus"/> is a transient failure.
+    /// </summary>
+    public class WebExceptionRetryPolicy : ExceptionRetryPolicy<WebException>
     {
         private readonly HttpRetryOptions options;
 

@@ -225,6 +225,12 @@ namespace Http.Resilience
             return false;
         }
 
+        public IHttpRetryHelper RemoveAllRetryPolicies()
+        {
+            this.retryPolicies.Clear();
+            return this;
+        }
+
         public IHttpRetryHelper AddRetryPolicy<T>(IRetryPolicy<T> retryPolicy)
         {
             this.AddOrUpdateRetryPolicy(retryPolicy);

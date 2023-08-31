@@ -3,7 +3,7 @@ using Http.Resilience.Internals;
 
 namespace Http.Resilience.Policies
 {
-    internal class CurlExceptionRetryPolicy : ExceptionRetryPolicy<Exception>
+    public class CurlExceptionRetryPolicy : ExceptionRetryPolicy<Exception>
     {
         protected override bool ShouldRetryOnException(Exception ex)
         {
