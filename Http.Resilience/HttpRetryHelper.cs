@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net.Http;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Http.Resilience.Extensions;
@@ -18,6 +19,8 @@ namespace Http.Resilience
     /// </summary>
     public class HttpRetryHelper : IHttpRetryHelper
     {
+        private const string RetryMethodName = nameof(IRetryPolicy.ShouldRetry);
+
         private readonly string instance = Guid.NewGuid().ToString().Substring(0, 5).ToUpperInvariant();
 
         private static readonly Lazy<IHttpRetryHelper> Implementation = new Lazy<IHttpRetryHelper>(CreateInstance, LazyThreadSafetyMode.PublicationOnly);
@@ -64,11 +67,8 @@ namespace Http.Resilience
 
         public HttpRetryOptions Options { get; }
 
-        public IReadOnlyDictionary<Type, ReadOnlyCollection<IRetryPolicy>> RetryPolicies
-        {
-            get => new ReadOnlyDictionary<Type, ReadOnlyCollection<IRetryPolicy>>(
+        public IReadOnlyDictionary<Type, ReadOnlyCollection<IRetryPolicy>> RetryPolicies => new ReadOnlyDictionary<Type, ReadOnlyCollection<IRetryPolicy>>(
                 this.retryPolicies.ToDictionary(k => k.Key, v => v.Value.ToList().AsReadOnly()));
-        }
 
         /// <summary>
         ///     Calls <paramref name="action" /> synchronously.
@@ -198,6 +198,10 @@ namespace Http.Resilience
             }
         }
 
+        /// <summary>
+        /// Checks all retry policies if the given <paramref name="parameter"/> 
+        /// should lead to a retry.
+        /// </summary>
         private bool EvaluateRetryPolicies(object parameter)
         {
             if (parameter == null)
@@ -205,24 +209,49 @@ namespace Http.Resilience
                 return false;
             }
 
+            var stringBuilder = new StringBuilder();
+
             var paramType = parameter.GetType();
+            var parameterTypeName = paramType.GetFormattedClassName();
+            var shouldRetry = false;
+
             var applicableRetryPolicies = this.retryPolicies
                 .Where(p => p.Key.IsAssignableFrom(paramType))
                 .SelectMany(p => p.Value)
                 .ToList();
 
-            foreach (var retryPolicy in applicableRetryPolicies)
+            if (applicableRetryPolicies.Count > 0)
             {
-                var shouldRetry = retryPolicy.ShouldRetry(parameter);
-                this.Log(shouldRetry ? LogLevel.Info : LogLevel.Debug,
-                    $"{retryPolicy.GetType().GetFormattedClassName()}.ShouldRetry({paramType.GetFormattedClassName()}) returned {shouldRetry}");
-                if (shouldRetry)
+                var evaluatedRetryPolicies = 0;
+                var stringBuilderRetryPolicies = new StringBuilder();
+                foreach (var retryPolicy in applicableRetryPolicies)
                 {
-                    return true;
+                    shouldRetry = retryPolicy.ShouldRetry(parameter);
+
+                    var retryPolicyName = retryPolicy.GetType().GetFormattedClassName();
+
+                    stringBuilderRetryPolicies.AppendLine($"- [{(shouldRetry ? "X" : " ")}] {retryPolicyName}.{RetryMethodName}({parameterTypeName})");
+
+                    evaluatedRetryPolicies++;
+
+                    if (shouldRetry)
+                    {
+                        break;
+                    }
                 }
+
+                stringBuilder.AppendLine($"EvaluateRetryPolicies: {evaluatedRetryPolicies}/{applicableRetryPolicies.Count} retry {(applicableRetryPolicies.Count == 1 ? "policy" : "policies")} evaluated --> shouldRetry={shouldRetry}");
+                stringBuilder.AppendLine(stringBuilderRetryPolicies.ToString());
+            }
+            else
+            {
+                stringBuilder.AppendLine($"EvaluateRetryPolicies: No retry policy found for type {parameterTypeName} --> shouldRetry={shouldRetry}");
             }
 
-            return false;
+            var logLevel = shouldRetry ? LogLevel.Info : LogLevel.Debug;
+            var logMessage = stringBuilder.ToString().TrimEnd();
+            this.Log(logLevel, logMessage);
+            return shouldRetry;
         }
 
         public IHttpRetryHelper RemoveAllRetryPolicies()
