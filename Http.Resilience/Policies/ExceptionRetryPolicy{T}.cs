@@ -17,7 +17,7 @@ namespace Http.Resilience.Policies
 
             do
             {
-                if (ex is TException typedEx && this.ShouldRetryOnException(typedEx))
+                if (ex is TException exception && this.ShouldRetryOnException(exception))
                 {
                     return true;
                 }
