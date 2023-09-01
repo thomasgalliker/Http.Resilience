@@ -2,6 +2,6 @@
 {
     public class LoggingOptions
     {
-        public EvaluateRetryPoliciesLoggingOptions EvaluateRetryPolicies { get; set; } = new EvaluateRetryPoliciesLoggingOptions("X", "-", " ");
+        public EvaluateRetryPoliciesLoggingOptions EvaluateRetryPolicies { get; set; } = new EvaluateRetryPoliciesLoggingOptions();
     }
 }
