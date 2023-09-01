@@ -209,6 +209,8 @@ namespace Http.Resilience
                 return false;
             }
 
+            var loggingOptions = this.Options.Logging.EvaluateRetryPolicies;
+
             var stringBuilder = new StringBuilder();
 
             var paramType = parameter.GetType();
@@ -224,19 +226,22 @@ namespace Http.Resilience
             {
                 var evaluatedRetryPolicies = 0;
                 var stringBuilderRetryPolicies = new StringBuilder();
+                var continueEvaluation = true;
                 foreach (var retryPolicy in applicableRetryPolicies)
                 {
-                    shouldRetry = retryPolicy.ShouldRetry(parameter);
+                    if (continueEvaluation)
+                    {
+                        shouldRetry = retryPolicy.ShouldRetry(parameter);
+                        evaluatedRetryPolicies++;
+                    }
 
                     var retryPolicyName = retryPolicy.GetType().GetFormattedClassName();
-
-                    stringBuilderRetryPolicies.AppendLine($"- [{(shouldRetry ? "X" : " ")}] {retryPolicyName}.{RetryMethodName}({parameterTypeName})");
-
-                    evaluatedRetryPolicies++;
+                    var checkMark = $"{(continueEvaluation == false ? loggingOptions.NotEvaluated : (shouldRetry ? loggingOptions.ShouldRetry : loggingOptions.ShouldNotRetry))}";
+                    stringBuilderRetryPolicies.AppendLine($"[{checkMark}] {retryPolicyName}.{RetryMethodName}({parameterTypeName})");
 
                     if (shouldRetry)
                     {
-                        break;
+                        continueEvaluation = false;
                     }
                 }
 
