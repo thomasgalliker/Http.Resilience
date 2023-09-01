@@ -47,14 +47,19 @@ namespace Http.Resilience.Policies
                 var innerExceptionType = innerException.GetType();
                 if (innerExceptionType.FullName == "Foundation.NSErrorException")
                 {
-                    var propertyInfoCode = innerExceptionType.GetProperty("Code", PropertyFlags);
-                    if (propertyInfoCode != null)
+                    var domainPropertyInfo = innerExceptionType.GetProperty("Domain", PropertyFlags);
+                    var domain = domainPropertyInfo?.GetValue(innerException) as string;
+                    if (domain == "NSURLErrorDomain")
                     {
-                        var codePropertyValue = propertyInfoCode.GetValue(innerException) as int?;
-                        if (codePropertyValue is int code && 
-                            this.RetryCodes.Contains((NSUrlError)code))
+                        var codePropertyInfo = innerExceptionType.GetProperty("Code", PropertyFlags);
+                        if (codePropertyInfo != null)
                         {
-                            return true;
+                            var codePropertyValue = codePropertyInfo.GetValue(innerException);
+                            var code = Convert.ToInt32(codePropertyValue);
+                            if (this.RetryCodes.Contains((NSUrlError)code))
+                            {
+                                return true;
+                            }
                         }
                     }
                 }
