@@ -48,6 +48,7 @@ namespace Http.Resilience
         private int maxRetries;
         private TimeSpan minBackoff;
         private ICollection<HttpStatusCode> retryableStatusCodes;
+        private LoggingOptions logging = new LoggingOptions();
 
         public HttpRetryOptions()
             : this(new[] { HostShutdownFilter })
@@ -128,6 +129,15 @@ namespace Http.Resilience
             }
         }
 
+        public LoggingOptions Logging
+        {
+            get => this.logging;
+            set
+            {
+                this.ThrowIfReadonly();
+                this.logging = value ?? new LoggingOptions();
+            }
+        }
         /// <summary>
         ///     Gets or sets the maximum number of retries for one particular request.
         /// </summary>
