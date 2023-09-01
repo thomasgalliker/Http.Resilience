@@ -2,7 +2,7 @@ using System.Net.Http;
 
 namespace Http.Resilience.Policies
 {
-    internal class HttpMessageResponseRetryPolicy : RetryPolicy<HttpResponseMessage>
+    public class HttpMessageResponseRetryPolicy : RetryPolicy<HttpResponseMessage>
     {
         private readonly HttpRetryOptions httpRetryOptions;
 

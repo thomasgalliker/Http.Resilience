@@ -4,7 +4,7 @@ using System.IO;
 
 namespace Http.Resilience.Policies
 {
-    internal class SystemIOExceptionRetryPolicy : ExceptionRetryPolicy<IOException>
+    public class SystemIOExceptionRetryPolicy : ExceptionRetryPolicy<IOException>
     {
         protected override bool ShouldRetryOnException(IOException ioException)
         {
