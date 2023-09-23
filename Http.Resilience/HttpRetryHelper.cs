@@ -14,8 +14,8 @@ using Http.Resilience.Policies;
 namespace Http.Resilience
 {
     /// <summary>
-    ///     HTTP retry helper which can be used to retry failed HTTP calls.
-    ///     The retry behavior is configurable in <seealso cref="HttpRetryOptions" />.
+    /// HTTP retry helper which can be used to retry failed HTTP calls.
+    /// The retry behavior is configurable in <seealso cref="HttpRetryOptions" />.
     /// </summary>
     public class HttpRetryHelper : IHttpRetryHelper
     {
@@ -25,6 +25,9 @@ namespace Http.Resilience
 
         private static readonly Lazy<IHttpRetryHelper> Implementation = new Lazy<IHttpRetryHelper>(CreateInstance, LazyThreadSafetyMode.PublicationOnly);
 
+        /// <summary>
+        /// Singleton instance of <see cref="IHttpRetryHelper"/>.
+        /// </summary>
         public static IHttpRetryHelper Current => Implementation.Value;
 
         private static IHttpRetryHelper CreateInstance()
@@ -35,7 +38,7 @@ namespace Http.Resilience
         private readonly IDictionary<Type, ICollection<IRetryPolicy>> retryPolicies = new Dictionary<Type, ICollection<IRetryPolicy>>();
 
         /// <summary>
-        ///     Creates an instance of <seealso cref="HttpRetryHelper" /> with default <seealso cref="HttpRetryOptions" />.
+        /// Creates an instance of <seealso cref="HttpRetryHelper" /> with default <seealso cref="HttpRetryOptions" />.
         /// </summary>
         public HttpRetryHelper()
             : this(HttpRetryOptions.Default)
@@ -43,8 +46,8 @@ namespace Http.Resilience
         }
 
         /// <summary>
-        ///     Creates an instance of <seealso cref="HttpRetryHelper" /> with default <seealso cref="HttpRetryOptions" />
-        ///     overriding <paramref name="maxRetries" />.
+        /// Creates an instance of <seealso cref="HttpRetryHelper" /> with default <seealso cref="HttpRetryOptions" />
+        /// overriding <paramref name="maxRetries" />.
         /// </summary>
         public HttpRetryHelper(int maxRetries)
             : this(new HttpRetryOptions { MaxRetries = maxRetries })
@@ -52,7 +55,7 @@ namespace Http.Resilience
         }
 
         /// <summary>
-        ///     Creates an instance of <seealso cref="HttpRetryHelper" /> with <paramref name="httpRetryOptions" />.
+        /// Creates an instance of <seealso cref="HttpRetryHelper" /> with <paramref name="httpRetryOptions" />.
         /// </summary>
         public HttpRetryHelper(HttpRetryOptions httpRetryOptions)
         {
@@ -71,7 +74,7 @@ namespace Http.Resilience
                 this.retryPolicies.ToDictionary(k => k.Key, v => v.Value.ToList().AsReadOnly()));
 
         /// <summary>
-        ///     Calls <paramref name="action" /> synchronously.
+        /// Calls <paramref name="action" /> synchronously.
         /// </summary>
         public void Invoke(Action action, string actionName = nameof(Invoke))
         {
@@ -88,7 +91,7 @@ namespace Http.Resilience
         }
 
         /// <summary>
-        ///     Calls <paramref name="function" /> synchronously and returns <typeparamref name="TResult" />.
+        /// Calls <paramref name="function" /> synchronously and returns <typeparamref name="TResult" />.
         /// </summary>
         public TResult Invoke<TResult>(Func<TResult> function, string functionName = nameof(Invoke))
         {
@@ -104,7 +107,7 @@ namespace Http.Resilience
         }
 
         /// <summary>
-        ///     Calls <paramref name="function" /> asynchronously.
+        /// Calls <paramref name="function" /> asynchronously.
         /// </summary>
         public async Task InvokeAsync(Func<Task> function, string functionName = nameof(InvokeAsync))
         {
@@ -121,7 +124,7 @@ namespace Http.Resilience
         }
 
         /// <summary>
-        ///     Calls <paramref name="function" /> asynchronously and returns <typeparamref name="TResult" />.
+        /// Calls <paramref name="function" /> asynchronously and returns <typeparamref name="TResult" />.
         /// </summary>
         public async Task<TResult> InvokeAsync<TResult>(Func<Task<TResult>> function, string functionName = nameof(InvokeAsync))
         {
