@@ -11,6 +11,7 @@ using Http.Resilience.Internals;
 using Http.Resilience.Policies;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 
 namespace Http.Resilience
 {
@@ -78,8 +79,19 @@ namespace Http.Resilience
         /// <summary>
         /// Creates an instance of <seealso cref="HttpRetryHelper" /> with <paramref name="httpRetryOptions" />.
         /// </summary>
+        /// <param name="httpRetryOptions">The options instance.</param>
         public HttpRetryHelper(HttpRetryOptions httpRetryOptions)
             : this(new NullLogger<HttpRetryHelper>(), httpRetryOptions)
+        {
+        }
+
+        /// <summary>
+        /// Creates an instance of <seealso cref="HttpRetryHelper" /> with <paramref name="options" />.
+        /// </summary>
+        /// <param name="logger">The logger instance.</param>
+        /// <param name="options">The options instance.</param>
+        public HttpRetryHelper(ILogger<HttpRetryHelper> logger, IOptions<HttpRetryOptions> options)
+            : this(logger, options.Value)
         {
         }
 
@@ -87,6 +99,7 @@ namespace Http.Resilience
         /// Creates an instance of <seealso cref="HttpRetryHelper" /> with <paramref name="httpRetryOptions" />.
         /// </summary>
         /// <param name="logger">The logger instance.</param>
+        /// <param name="httpRetryOptions">The options instance.</param>
         public HttpRetryHelper(ILogger<HttpRetryHelper> logger, HttpRetryOptions httpRetryOptions)
         {
             this.logger = logger;
