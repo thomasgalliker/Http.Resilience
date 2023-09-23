@@ -8,7 +8,6 @@ using System.Net.Sockets;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Http.Resilience.Internals;
-using Http.Resilience.Logging;
 using Http.Resilience.Policies;
 using Http.Resilience.Tests.Logging;
 using Http.Resilience.Tests.TestData;
@@ -20,9 +19,11 @@ namespace Http.Resilience.Tests
 {
     public class HttpRetryHelperTests
     {
+        private readonly TestOutputHelperLogger<HttpRetryHelper> logger;
+
         public HttpRetryHelperTests(ITestOutputHelper testOutputHelper)
         {
-            Logger.SetLogger(new TestOutputHelperLogger(testOutputHelper));
+            this.logger = new TestOutputHelperLogger<HttpRetryHelper>(testOutputHelper);
         }
 
         [Theory]
@@ -31,7 +32,7 @@ namespace Http.Resilience.Tests
             Type expectedExceptionType)
         {
             // Arrange
-            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper();
+            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(this.logger);
 
             // Act
             var func = () => httpRetryHelper.Invoke(action, actionName);
@@ -55,7 +56,7 @@ namespace Http.Resilience.Tests
         public void Invoke_ShouldReturnOK()
         {
             // Arrange
-            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(3);
+            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(this.logger, 3);
             var httpResponseMessage = new HttpResponseMessage(HttpStatusCode.OK);
 
             // Act
@@ -86,7 +87,7 @@ namespace Http.Resilience.Tests
         {
             // Arrange
             var numberOfInvokes = 0;
-            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(3);
+            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(this.logger,3);
 
             // Act
             httpRetryHelper.Invoke(() => { numberOfInvokes++; });
@@ -100,7 +101,7 @@ namespace Http.Resilience.Tests
         {
             // Arrange
             var numberOfInvokes = 0;
-            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(3);
+            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(this.logger, 3);
 
             // Act
             await httpRetryHelper.InvokeAsync(() =>
@@ -120,7 +121,7 @@ namespace Http.Resilience.Tests
         public void Invoke_ShouldRetry_WebExceptionWithRetryableStatusCode(HttpStatusCode httpStatusCode)
         {
             // Arrange
-            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(3);
+            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(this.logger, 3);
 
             var httpWebResponseMock = new Mock<HttpWebResponse>();
             httpWebResponseMock.Setup(r => r.StatusCode)
@@ -146,7 +147,7 @@ namespace Http.Resilience.Tests
         public void Invoke_ShouldRetry_WebException(WebExceptionStatus webExceptionStatus)
         {
             // Arrange
-            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(3);
+            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(this.logger, 3);
 
             var attempts = new Queue<Func<HttpResponseMessage>>(new List<Func<HttpResponseMessage>>
             {
@@ -190,7 +191,7 @@ namespace Http.Resilience.Tests
         public void Invoke_ShouldRetry_SocketException(SocketError socketError)
         {
             // Arrange
-            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(3);
+            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(this.logger, 3);
 
             var attempts = new Queue<Func<HttpResponseMessage>>(new List<Func<HttpResponseMessage>>
             {
@@ -210,7 +211,7 @@ namespace Http.Resilience.Tests
         public void Invoke_ShouldRetry_CurlException()
         {
             // Arrange
-            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(3);
+            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(this.logger, 3);
 
             var attempts = new Queue<Func<HttpResponseMessage>>(new List<Func<HttpResponseMessage>>
             {
@@ -235,7 +236,7 @@ namespace Http.Resilience.Tests
         public void Invoke_ShouldRetry_IOExceptionWithWin32Exception()
         {
             // Arrange
-            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(3);
+            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(this.logger, 3);
 
             var attempts = new Queue<Func<HttpResponseMessage>>(new List<Func<HttpResponseMessage>>
             {
@@ -283,7 +284,7 @@ namespace Http.Resilience.Tests
         public void Invoke_ShouldRetry_OnRetryableStatusCode(HttpStatusCode httpStatusCode)
         {
             // Arrange
-            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(3);
+            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(this.logger, 3);
 
             var attempts = new Queue<Func<HttpResponseMessage>>(new List<Func<HttpResponseMessage>>
             {
@@ -303,7 +304,7 @@ namespace Http.Resilience.Tests
         public void Invoke_ShouldNotRetry_OnUnsuccessfulStatusCode()
         {
             // Arrange
-            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(3);
+            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(this.logger, 3);
 
             var attempts = new Queue<Func<HttpResponseMessage>>(new List<Func<HttpResponseMessage>>
             {
@@ -324,7 +325,7 @@ namespace Http.Resilience.Tests
         public void Invoke_ShouldNotRetry_EnsureSuccessStatusCode_Enabled()
         {
             // Arrange
-            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(3);
+            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(this.logger, 3);
             httpRetryHelper.Options.EnsureSuccessStatusCode = true;
 
             var attempts = new Queue<Func<HttpResponseMessage>>(new List<Func<HttpResponseMessage>>
@@ -346,7 +347,7 @@ namespace Http.Resilience.Tests
         public void Invoke_ShouldNotRetry_EnsureSuccessStatusCode_Disabled()
         {
             // Arrange
-            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(3);
+            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(this.logger, 3);
             httpRetryHelper.Options.EnsureSuccessStatusCode = false;
 
             var attempts = new Queue<Func<HttpResponseMessage>>(new List<Func<HttpResponseMessage>>
@@ -368,7 +369,7 @@ namespace Http.Resilience.Tests
         public async Task Invoke_ShouldNotRetry_IfHasRetryableStatusCodeButFilterIsActive_HttpRequestException()
         {
             // Arrange
-            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(3);
+            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(this.logger, 3);
 
             var attempts = new Queue<Func<HttpResponseMessage>>(new List<Func<HttpResponseMessage>>
             {
@@ -389,7 +390,7 @@ namespace Http.Resilience.Tests
         public void Invoke_ShouldNotRetry_IfHasRetryableStatusCodeButFilterIsActive_WebException()
         {
             // Arrange
-            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(3);
+            IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(this.logger, 3);
             var httpWebResponse = CreateHttpWebResponse_WithHostOfflineErrorHeaders(HttpStatusCode.ServiceUnavailable);
 
             var attempts = new Queue<Func<HttpResponseMessage>>(new List<Func<HttpResponseMessage>>

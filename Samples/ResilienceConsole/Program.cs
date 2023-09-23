@@ -3,19 +3,25 @@ using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Http.Resilience;
-using Http.Resilience.Logging;
-using ResilienceConsole.Logging;
+using Microsoft.Extensions.Logging;
 
 namespace ResilienceConsole
 {
     public static class Program
     {
+        private static ILogger<HttpRetryHelper> Logger;
+
         public static async Task Main(string[] args)
         {
             Console.WriteLine("Http.Resilience Sample Console App");
             Console.WriteLine();
 
-            Logger.SetLogger(new ConsoleLogger());
+            using var loggerFactory = LoggerFactory.Create(builder =>
+            {
+                builder.AddConsole();
+            });
+
+            Logger = loggerFactory.CreateLogger<HttpRetryHelper>();
 
             // Example 1:
             // Everything is okay. The first attempts succeeds
@@ -41,7 +47,7 @@ namespace ResilienceConsole
             var httpClient = new HttpClient();
             var requestUri = "http://worldtimeapi.org/api/timezone/Europe/Zurich";
 
-            var httpRetryHelper = new HttpRetryHelper(maxRetries: 3);
+            var httpRetryHelper = new HttpRetryHelper(Logger, maxRetries: 3);
             httpRetryHelper.RetryOnException<HttpRequestException>(ex => { return ex.StatusCode == HttpStatusCode.ServiceUnavailable; });
 
             try
@@ -62,7 +68,7 @@ namespace ResilienceConsole
             var httpClient = new HttpClient();
             var requestUri = "http://worldtimeapi.org/not-found";
 
-            var httpRetryHelper = new HttpRetryHelper(maxRetries: 3);
+            var httpRetryHelper = new HttpRetryHelper(Logger, maxRetries: 3);
             httpRetryHelper.Options.EnsureSuccessStatusCode = false;
             httpRetryHelper.Options.RetryableStatusCodes.Add(HttpStatusCode.NotFound);
 
@@ -87,7 +93,7 @@ namespace ResilienceConsole
             var httpRetryOptions = new HttpRetryOptions();
             httpRetryOptions.MaxRetries = 4;
 
-            var httpRetryHelper = new HttpRetryHelper(httpRetryOptions);
+            var httpRetryHelper = new HttpRetryHelper(Logger, httpRetryOptions);
             httpRetryHelper.RetryOnException<HttpRequestException>(ex => { return ex.StatusCode == HttpStatusCode.Unauthorized; });
 
             try

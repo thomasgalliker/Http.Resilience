@@ -8,14 +8,16 @@ using System.Threading;
 using System.Threading.Tasks;
 using Http.Resilience.Extensions;
 using Http.Resilience.Internals;
-using Http.Resilience.Logging;
 using Http.Resilience.Policies;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 
 namespace Http.Resilience
 {
     /// <summary>
-    ///     HTTP retry helper which can be used to retry failed HTTP calls.
-    ///     The retry behavior is configurable in <seealso cref="HttpRetryOptions" />.
+    /// HTTP retry helper which can be used to retry failed HTTP calls.
+    /// The retry behavior is configurable in <seealso cref="HttpRetryOptions" />.
     /// </summary>
     public class HttpRetryHelper : IHttpRetryHelper
     {
@@ -25,6 +27,9 @@ namespace Http.Resilience
 
         private static readonly Lazy<IHttpRetryHelper> Implementation = new Lazy<IHttpRetryHelper>(CreateInstance, LazyThreadSafetyMode.PublicationOnly);
 
+        /// <summary>
+        /// Singleton instance of <see cref="IHttpRetryHelper"/>.
+        /// </summary>
         public static IHttpRetryHelper Current => Implementation.Value;
 
         private static IHttpRetryHelper CreateInstance()
@@ -32,30 +37,72 @@ namespace Http.Resilience
             return new HttpRetryHelper();
         }
 
+        private readonly ILogger<HttpRetryHelper> logger;
         private readonly IDictionary<Type, ICollection<IRetryPolicy>> retryPolicies = new Dictionary<Type, ICollection<IRetryPolicy>>();
 
         /// <summary>
-        ///     Creates an instance of <seealso cref="HttpRetryHelper" /> with default <seealso cref="HttpRetryOptions" />.
+        /// Creates an instance of <seealso cref="HttpRetryHelper" /> with default <seealso cref="HttpRetryOptions" />.
         /// </summary>
         public HttpRetryHelper()
-            : this(HttpRetryOptions.Default)
+            : this(new NullLogger<HttpRetryHelper>())
         {
         }
 
         /// <summary>
-        ///     Creates an instance of <seealso cref="HttpRetryHelper" /> with default <seealso cref="HttpRetryOptions" />
-        ///     overriding <paramref name="maxRetries" />.
+        /// Creates an instance of <seealso cref="HttpRetryHelper" /> with default <seealso cref="HttpRetryOptions" />.
+        /// </summary>
+        /// <param name="logger">The logger instance.</param>
+        public HttpRetryHelper(ILogger<HttpRetryHelper> logger)
+            : this(logger, HttpRetryOptions.Default)
+        {
+        }
+
+        /// <summary>
+        /// Creates an instance of <seealso cref="HttpRetryHelper" /> with default <seealso cref="HttpRetryOptions" />
+        /// overriding <paramref name="maxRetries" />.
         /// </summary>
         public HttpRetryHelper(int maxRetries)
-            : this(new HttpRetryOptions { MaxRetries = maxRetries })
+            : this(new NullLogger<HttpRetryHelper>(), maxRetries)
         {
         }
 
         /// <summary>
-        ///     Creates an instance of <seealso cref="HttpRetryHelper" /> with <paramref name="httpRetryOptions" />.
+        /// Creates an instance of <seealso cref="HttpRetryHelper" /> with default <seealso cref="HttpRetryOptions" />
+        /// overriding <paramref name="maxRetries" />.
         /// </summary>
-        public HttpRetryHelper(HttpRetryOptions httpRetryOptions)
+        /// <param name="logger">The logger instance.</param>
+        public HttpRetryHelper(ILogger<HttpRetryHelper> logger, int maxRetries)
+            : this(logger, new HttpRetryOptions { MaxRetries = maxRetries })
         {
+        }
+
+        /// <summary>
+        /// Creates an instance of <seealso cref="HttpRetryHelper" /> with <paramref name="httpRetryOptions" />.
+        /// </summary>
+        /// <param name="httpRetryOptions">The options instance.</param>
+        public HttpRetryHelper(HttpRetryOptions httpRetryOptions)
+            : this(new NullLogger<HttpRetryHelper>(), httpRetryOptions)
+        {
+        }
+
+        /// <summary>
+        /// Creates an instance of <seealso cref="HttpRetryHelper" /> with <paramref name="options" />.
+        /// </summary>
+        /// <param name="logger">The logger instance.</param>
+        /// <param name="options">The options instance.</param>
+        public HttpRetryHelper(ILogger<HttpRetryHelper> logger, IOptions<HttpRetryOptions> options)
+            : this(logger, options.Value)
+        {
+        }
+
+        /// <summary>
+        /// Creates an instance of <seealso cref="HttpRetryHelper" /> with <paramref name="httpRetryOptions" />.
+        /// </summary>
+        /// <param name="logger">The logger instance.</param>
+        /// <param name="httpRetryOptions">The options instance.</param>
+        public HttpRetryHelper(ILogger<HttpRetryHelper> logger, HttpRetryOptions httpRetryOptions)
+        {
+            this.logger = logger;
             this.Options = httpRetryOptions;
 
             this.AddOrUpdateRetryPolicy(new HttpMessageResponseRetryPolicy(this.Options));
@@ -71,7 +118,7 @@ namespace Http.Resilience
                 this.retryPolicies.ToDictionary(k => k.Key, v => v.Value.ToList().AsReadOnly()));
 
         /// <summary>
-        ///     Calls <paramref name="action" /> synchronously.
+        /// Calls <paramref name="action" /> synchronously.
         /// </summary>
         public void Invoke(Action action, string actionName = nameof(Invoke))
         {
@@ -88,7 +135,7 @@ namespace Http.Resilience
         }
 
         /// <summary>
-        ///     Calls <paramref name="function" /> synchronously and returns <typeparamref name="TResult" />.
+        /// Calls <paramref name="function" /> synchronously and returns <typeparamref name="TResult" />.
         /// </summary>
         public TResult Invoke<TResult>(Func<TResult> function, string functionName = nameof(Invoke))
         {
@@ -104,7 +151,7 @@ namespace Http.Resilience
         }
 
         /// <summary>
-        ///     Calls <paramref name="function" /> asynchronously.
+        /// Calls <paramref name="function" /> asynchronously.
         /// </summary>
         public async Task InvokeAsync(Func<Task> function, string functionName = nameof(InvokeAsync))
         {
@@ -121,7 +168,7 @@ namespace Http.Resilience
         }
 
         /// <summary>
-        ///     Calls <paramref name="function" /> asynchronously and returns <typeparamref name="TResult" />.
+        /// Calls <paramref name="function" /> asynchronously and returns <typeparamref name="TResult" />.
         /// </summary>
         public async Task<TResult> InvokeAsync<TResult>(Func<Task<TResult>> function, string functionName = nameof(InvokeAsync))
         {
@@ -145,7 +192,7 @@ namespace Http.Resilience
 
                 try
                 {
-                    this.Log(LogLevel.Info, $"Starting {functionName}... (Attempt {currentAttempt}/{maxAttempts})");
+                    this.Log(LogLevel.Information, $"Starting {functionName}... (Attempt {currentAttempt}/{maxAttempts})");
 
                     lastResult = await function();
                     if (lastResult is HttpResponseMessage httpResponseMessage)
@@ -160,13 +207,13 @@ namespace Http.Resilience
                     {
                         await this.SleepAsync(remainingAttempts);
                         currentAttempt++;
-                        this.Log(LogLevel.Info, $"{functionName} --> Retry on result {lastResult.GetType().GetFormattedClassName()}");
+                        this.Log(LogLevel.Information, $"{functionName} --> Retry on result {lastResult.GetType().GetFormattedClassName()}");
                         continue;
                     }
 
                     // If no retry is necessary, we log a success message
                     // and return the result
-                    this.Log(LogLevel.Info, $"{functionName} finished successfully (Attempt {currentAttempt}/{maxAttempts})");
+                    this.Log(LogLevel.Information, $"{functionName} finished successfully (Attempt {currentAttempt}/{maxAttempts})");
 
                     return lastResult;
                 }
@@ -184,7 +231,7 @@ namespace Http.Resilience
                     {
                         await this.SleepAsync(remainingAttempts);
                         currentAttempt++;
-                        this.Log(LogLevel.Info, $"{functionName} --> Retry on exception {ex.GetType().GetFormattedClassName()}");
+                        this.Log(LogLevel.Information, $"{functionName} --> Retry on exception {ex.GetType().GetFormattedClassName()}");
                         continue;
                     }
 
@@ -253,7 +300,7 @@ namespace Http.Resilience
                 stringBuilder.AppendLine($"EvaluateRetryPolicies: No retry policy found for type {parameterTypeName} --> shouldRetry={shouldRetry}");
             }
 
-            var logLevel = shouldRetry ? LogLevel.Info : LogLevel.Debug;
+            var logLevel = shouldRetry ? LogLevel.Information : LogLevel.Debug;
             var logMessage = stringBuilder.ToString().TrimEnd();
             this.Log(logLevel, logMessage);
             return shouldRetry;
@@ -325,7 +372,7 @@ namespace Http.Resilience
 
         private void Log(LogLevel logLevel, string message)
         {
-            Logger.Current.Log(logLevel, $"HttpRetryHelper_{this.instance}|{message}");
+            this.logger.Log(logLevel, $"HttpRetryHelper_{this.instance}|{message}");
         }
     }
 }
