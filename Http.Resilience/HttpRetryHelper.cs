@@ -197,19 +197,25 @@ namespace Http.Resilience
                     lastResult = await function();
                     if (lastResult is HttpResponseMessage httpResponseMessage)
                     {
+                        // Check success HTTP status code
+                        // if the returned result is HttpResponseMessage
                         httpResponseMessage.EnsureSuccessStatusCode();
                     }
-
-                    // Retry can be done based on the returned result
-                    var hasRemainingAttempts = HasRemainingAttempts(remainingAttempts);
-                    var shouldRetry = hasRemainingAttempts && this.EvaluateRetryPolicies(lastResult);
-                    if (shouldRetry)
+                    else
                     {
-                        await this.SleepAsync(remainingAttempts);
-                        currentAttempt++;
-                        this.Log(LogLevel.Information, $"{functionName} --> Retry on result {lastResult.GetType().GetFormattedClassName()}");
-                        continue;
+
+                        // Evaluate retry based on returned response
+                        var hasRemainingAttempts = HasRemainingAttempts(remainingAttempts);
+                        var shouldRetry = hasRemainingAttempts && this.EvaluateRetryPolicies(lastResult);
+                        if (shouldRetry)
+                        {
+                            await this.SleepAsync(remainingAttempts);
+                            currentAttempt++;
+                            this.Log(LogLevel.Information, $"{functionName} --> Retry on result {lastResult.GetType().GetFormattedClassName()}");
+                            continue;
+                        }
                     }
+
 
                     // If no retry is necessary, we log a success message
                     // and return the result
