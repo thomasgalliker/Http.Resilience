@@ -29,6 +29,6 @@ namespace Http.Resilience.Policies
             return false;
         }
         
-        protected abstract bool ShouldRetryOnException(TException parameter);
+        protected abstract bool ShouldRetryOnException(TException exception);
     }
 }
