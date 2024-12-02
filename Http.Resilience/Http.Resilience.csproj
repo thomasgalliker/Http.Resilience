@@ -29,7 +29,10 @@
     <Copyright>Copyright $([System.DateTime]::Now.ToString(`yyyy`)) © Thomas Galliker</Copyright>
 		<Product>Http.Resilience</Product>
 		<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-		<PackageReleaseNotes>2.0
+		<PackageReleaseNotes>2.1
+- Add new retry policy for HttpResponseExceptions
+
+2.0
 - Integrate Microsoft.Extensions.Logging
 - Integrate Microsoft.Extensions.DependencyInjection
 - Integrate Microsoft.Extensions.Options
