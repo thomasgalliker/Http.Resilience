@@ -107,6 +107,7 @@ namespace Http.Resilience
 
             this.AddOrUpdateRetryPolicy(new HttpMessageResponseRetryPolicy(this.Options));
             this.AddOrUpdateRetryPolicy(new WebExceptionRetryPolicy(this.Options));
+            this.AddOrUpdateRetryPolicy(new HttpRequestExceptionStreamCopyRetryPolicy());
             this.AddOrUpdateRetryPolicy(new SystemNetSocketExceptionRetryPolicy());
             this.AddOrUpdateRetryPolicy(new SystemIOExceptionRetryPolicy());
             this.AddOrUpdateRetryPolicy(new CurlExceptionRetryPolicy());
@@ -252,7 +253,7 @@ namespace Http.Resilience
         }
 
         /// <summary>
-        /// Checks all retry policies if the given <paramref name="parameter"/> 
+        /// Checks all retry policies if the given <paramref name="parameter"/>
         /// should lead to a retry.
         /// </summary>
         private bool EvaluateRetryPolicies(object parameter)
