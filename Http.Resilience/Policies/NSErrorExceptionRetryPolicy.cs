@@ -55,10 +55,12 @@ namespace Http.Resilience.Policies
                         if (codePropertyInfo != null)
                         {
                             var codePropertyValue = codePropertyInfo.GetValue(innerException);
-                            var code = Convert.ToInt32(codePropertyValue);
-                            if (this.RetryCodes.Contains((NSUrlError)code))
+                            if (int.TryParse($"{codePropertyValue}", out var code))
                             {
-                                return true;
+                                if (this.RetryCodes.Contains((NSUrlError)code))
+                                {
+                                    return true;
+                                }
                             }
                         }
                     }
