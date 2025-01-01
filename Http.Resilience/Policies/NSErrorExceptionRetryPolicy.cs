@@ -10,8 +10,8 @@ namespace Http.Resilience.Policies
     /// </summary>
     /// <remarks>
     /// There is a lot of discussion about what NSUrlError status codes
-    /// need to be considered transient. Many existing retry implementations use 
-    /// NSURLError.NotConnectedToInternet, NSURLError.InternationalRoamingOff and NSURLError.DataNotAllowed 
+    /// need to be considered transient. Many existing retry implementations use
+    /// NSURLError.NotConnectedToInternet, NSURLError.InternationalRoamingOff and NSURLError.DataNotAllowed
     /// as retry codes, which is probably wrong. All codes which require user interaction
     /// to be resolved, should not participate in automatic http retries.
     /// Follow the discussion here:
@@ -21,7 +21,7 @@ namespace Http.Resilience.Policies
     {
         private const BindingFlags PropertyFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.FlattenHierarchy;
 
-        private ICollection<NSUrlError> retryCodes = new NSUrlError[]
+        private ICollection<NSUrlError> retryCodes = new []
         {
             NSUrlError.TimedOut,
             NSUrlError.NetworkConnectionLost,
