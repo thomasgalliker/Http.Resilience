@@ -1,5 +1,5 @@
 # Http.Resilience
-[![Version](https://img.shields.io/nuget/v/Http.Resilience.svg)](https://www.nuget.org/packages/Http.Resilience)  [![Downloads](https://img.shields.io/nuget/dt/Http.Resilience.svg)](https://www.nuget.org/packages/Http.Resilience)
+[![Version](https://img.shields.io/nuget/v/Http.Resilience.svg)](https://www.nuget.org/packages/Http.Resilience) [![Downloads](https://img.shields.io/nuget/dt/Http.Resilience.svg)](https://www.nuget.org/packages/Http.Resilience) [![Buy Me a Coffee](https://img.shields.io/badge/support-buy%20me%20a%20coffee-FFDD00)](https://buymeacoffee.com/thomasgalliker)
 
 Http.Resilience adds fault tolerance to any HTTP request. It can be used together with C# HttpClient, WebRequest or any other HTTP client. Transient network failures are automatically catched and a configurable number of retries is issued.
 
