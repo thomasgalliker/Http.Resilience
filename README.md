@@ -62,7 +62,7 @@ catch (Exception ex)
 ```
 
 #### Retry based on returned result
-Retries can also be carried out if a particular result is returned by Invoke/InvokeAsync.
+Retries can also be carried out if a particular result is returned by `Invoke` or `InvokeAsync`.
 RetryOnResult delegate allows to evaluate the returned result and indicate if a retry is necessary (true=retry, false=do not retry).
 ```C#
 var httpClient = new HttpClient();
