@@ -61,6 +61,7 @@ namespace Http.Resilience
         /// Creates an instance of <seealso cref="HttpRetryHelper" /> with default <seealso cref="HttpRetryOptions" />
         /// overriding <paramref name="maxRetries" />.
         /// </summary>
+        /// <param name="maxRetries">Number of retries for one particular request.</param>
         public HttpRetryHelper(int maxRetries)
             : this(new NullLogger<HttpRetryHelper>(), maxRetries)
         {
@@ -71,6 +72,7 @@ namespace Http.Resilience
         /// overriding <paramref name="maxRetries" />.
         /// </summary>
         /// <param name="logger">The logger instance.</param>
+        /// <param name="maxRetries">Number of retries for one particular request.</param>
         public HttpRetryHelper(ILogger<HttpRetryHelper> logger, int maxRetries)
             : this(logger, new HttpRetryOptions { MaxRetries = maxRetries })
         {
