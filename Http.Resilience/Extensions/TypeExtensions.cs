@@ -27,7 +27,7 @@ namespace Http.Resilience.Extensions
 
             if (typeName == null)
             {
-                return $"{(string) null}<{genericTypeParametersString}>{arrayBrackets}";
+                return $"<{genericTypeParametersString}>{arrayBrackets}";
             }
 
             var iBacktick = typeName.IndexOf('`');
@@ -41,7 +41,7 @@ namespace Http.Resilience.Extensions
 
         private static void TryGetInnerElementType(ref TypeInfo type, out string arrayBrackets)
         {
-            arrayBrackets = null;
+            arrayBrackets = string.Empty;
             if (!type.IsArray)
             {
                 return;
@@ -50,7 +50,13 @@ namespace Http.Resilience.Extensions
             do
             {
                 arrayBrackets += "[" + new string(',', type.GetArrayRank() - 1) + "]";
-                type = type.GetElementType().GetTypeInfo();
+                var elementType = type.GetElementType();
+                if (elementType == null)
+                {
+                    break;
+                }
+
+                type = elementType.GetTypeInfo();
             } while (type.IsArray);
         }
     }

@@ -18,7 +18,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
         public static IServiceCollection AddHttpResilience(
             this IServiceCollection services,
-            Action<HttpRetryOptions> options = null)
+            Action<HttpRetryOptions>? options = null)
         {
             // Configuration
             if (options != null)
