@@ -1,5 +1,4 @@
-﻿using System;
-using Http.Resilience;
+﻿using Http.Resilience;
 using Microsoft.Extensions.Configuration;
 
 namespace Microsoft.Extensions.DependencyInjection
