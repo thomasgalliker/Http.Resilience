@@ -88,7 +88,7 @@ namespace ResilienceConsole
         private static async Task Example3_RetryOnException()
         {
             var httpClient = new HttpClient();
-            var requestUri = "https://quotes.rest/qod?language=en";
+            const string requestUri = "https://thequoteshub.com/api/";
 
             var httpRetryOptions = new HttpRetryOptions();
             httpRetryOptions.MaxRetries = 4;
