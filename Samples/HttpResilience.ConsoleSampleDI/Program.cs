@@ -46,7 +46,7 @@ internal class Program
     private static async Task Example1_OK(IServiceProvider serviceProvider)
     {
         var httpClient = new HttpClient();
-        var requestUri = "http://worldtimeapi.org/api/timezone/Europe/Zurich";
+        var requestUri = "https://www.timeapi.io/api/v1/time/current/utc";
 
         // Resolve services from DI container
         var httpRetryHelper = serviceProvider.GetRequiredService<IHttpRetryHelper>();

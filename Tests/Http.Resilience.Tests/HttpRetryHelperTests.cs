@@ -441,7 +441,7 @@ namespace Http.Resilience.Tests
             // Arrange
             const int maxRetries = 3;
             var httpClient = new HttpClient();
-            var requestUri = "http://worldtimeapi.org/api/timezone/Europe/Zurich";
+            var requestUri = "https://www.timeapi.io/api/v1/time/current/utc";
 
             IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(maxRetries);
 
