@@ -441,7 +441,7 @@ namespace Http.Resilience.Tests
             // Arrange
             const int maxRetries = 3;
             var httpClient = new HttpClient();
-            var requestUri = "http://worldtimeapi.org/api/timezone/Europe/Zurich";
+            var requestUri = "https://www.timeapi.io/api/v1/time/current/utc";
 
             IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(maxRetries);
 
@@ -464,7 +464,7 @@ namespace Http.Resilience.Tests
             // Arrange
             const int maxRetries = 3;
             var httpClient = new HttpClient();
-            var requestUri = "https://quotes.rest/quote/random?language=en&limit=1";
+            var requestUri = "https://httpbin.org/status/401";
             var retryOnExceptionHits = 0;
 
             IHttpRetryHelper httpRetryHelper = new HttpRetryHelper(maxRetries);

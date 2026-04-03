@@ -19,7 +19,7 @@ You can use this library in any .NET Standard or .NET Core project.
 The following sample demonstrates a simple HTTP request using HttpClient. HttpRetryHelper is used to wrap httpClient.GetAsync(...). Whenever GetAsync(...) fails due to a transilient network failure, HttpRetryHelper attempts to recover the problem by repeatedly calling InvokeAsync.
 ```C#
 var httpClient = new HttpClient();
-var requestUri = "https://quotes.rest/qod?language=en";
+var requestUri = "https://thequoteshub.com/api/";
 
 var httpRetryHelper = new HttpRetryHelper(maxRetries: 3);
 
@@ -40,7 +40,7 @@ catch (Exception ex)
 Retries can be configured using the RetryOnException delegate. If Invoke/Async throws an exception, we can intercept it with RetryOnException((ex) => ...) and return a bool value to indicate whether we want to retry the particular HTTP request (true=retry, false=do not retry).
 ```C#
 var httpClient = new HttpClient();
-var requestUri = "https://quotes.rest/qod?language=en";
+var requestUri = "https://thequoteshub.com/api/";
 
 var httpRetryOptions = new HttpRetryOptions();
 httpRetryOptions.MaxRetries = 4;

@@ -1,71 +1,52 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<Description>Resilience and transient fault handling for HTTP clients.</Description>
-		<AssemblyTitle>Http.Resilience</AssemblyTitle>
-		<VersionPrefix>1.0.0</VersionPrefix>
-		<Version>1.0.0</Version>
-		<Authors>Thomas Galliker</Authors>
-		<TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
-		<AssemblyName>Http.Resilience</AssemblyName>
-    <RootNamespace>Http.Resilience</RootNamespace>
-		<PackageId>Http.Resilience</PackageId>
-		<PackageTags>retry;resilience;resilient;fault;failure;http;handler;HttpRetryHelper;ApiClient;ApiService</PackageTags>
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
+    <OutputType>Library</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <!--NuGet package-->
+  <PropertyGroup>
+    <Product>Http.Resilience</Product>
+    <Description>Resilience and transient fault handling for HTTP clients.</Description>
+    <Version>1.0.0</Version>
+    <Authors>Thomas Galliker</Authors>
+    <PackageId>Http.Resilience</PackageId>
+    <PackageTags>retry;resilience;resilient;fault;failure;http;handler;HttpRetryHelper;ApiClient;ApiService</PackageTags>
     <PackageIcon>logo.png</PackageIcon>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
-		<PackageProjectUrl>https://github.com/thomasgalliker/Http.Resilience</PackageProjectUrl>
-		<RepositoryType>git</RepositoryType>
-		<RepositoryUrl>https://github.com/thomasgalliker/Http.Resilience</RepositoryUrl>
-		<SignAssembly>True</SignAssembly>
-		<LangVersion>latest</LangVersion>
-	</PropertyGroup>
-
-	<PropertyGroup>
-		<ApplicationIcon />
-		<OutputType>Library</OutputType>
-		<StartupObject />
-		<Company>superdev GmbH</Company>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/thomasgalliker/Http.Resilience</PackageProjectUrl>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/thomasgalliker/Http.Resilience</RepositoryUrl>
+    <Company>superdev GmbH</Company>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <Copyright>Copyright $([System.DateTime]::Now.ToString(`yyyy`)) © Thomas Galliker</Copyright>
-		<Product>Http.Resilience</Product>
-		<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-		<PackageReleaseNotes>2.1
-- Add new retry policy for HttpResponseExceptions
+    <PackageReleaseNotes>$([System.IO.File]::ReadAllText("$(MSBuildProjectDirectory)/../ReleaseNotes.txt"))</PackageReleaseNotes>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EmbedAllSources>true</EmbedAllSources>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+  </PropertyGroup>
 
-2.0
-- Integrate Microsoft.Extensions.Logging
-- Integrate Microsoft.Extensions.DependencyInjection
-- Integrate Microsoft.Extensions.Options
-
-1.4
-- Improve log messages
-1.3
-- Minimum .NET framework version is now 4.8
-- Code cleanup
-
-1.2
-- Cleanups
-
-1.1
-- Support retry policies for Exceptions and HttpResponseMessages
-- Add new retry handler RetryOnResult
-- Code cleanup
-
-1.0
-- Initial release</PackageReleaseNotes>
-	</PropertyGroup>
-  
   <ItemGroup>
-    <None Include="..\Images\logo.png" Pack="True" PackagePath="\" />
     <None Include="..\README.md" Pack="True" PackagePath="\" />
     <None Include="..\LICENSE" Pack="True" PackagePath="\" />
+    <None Include="..\logo.png" Pack="True" PackagePath="\" />
   </ItemGroup>
-  
-	<ItemGroup>
-		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[6.0.0,)" />
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="[6.0.0,)" />
-		<PackageReference Include="Microsoft.Extensions.Options" Version="[6.0.0,)" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="[6.0.0,)" />
-		<PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="[6.0.0,)" />
-	</ItemGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="8.0.0" />
+  </ItemGroup>
 </Project>

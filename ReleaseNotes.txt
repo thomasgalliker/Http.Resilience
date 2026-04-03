@@ -1,0 +1,27 @@
+2.2
+- Maintenance update
+
+2.1
+- Add new retry policy for HttpResponseExceptions
+
+2.0
+- Integrate Microsoft.Extensions.Logging
+- Integrate Microsoft.Extensions.DependencyInjection
+- Integrate Microsoft.Extensions.Options
+
+1.4
+- Improve log messages
+1.3
+- Minimum .NET framework version is now 4.8
+- Code cleanup
+
+1.2
+- Cleanups
+
+1.1
+- Support retry policies for Exceptions and HttpResponseMessages
+- Add new retry handler RetryOnResult
+- Code cleanup
+
+1.0
+- Initial release
