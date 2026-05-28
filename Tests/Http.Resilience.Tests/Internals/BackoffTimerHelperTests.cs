@@ -1,5 +1,5 @@
 using System;
-using FluentAssertions;
+using AwesomeAssertions;
 using Http.Resilience.Internals;
 using Xunit;
 using Xunit.Abstractions;

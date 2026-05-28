@@ -1,5 +1,5 @@
 using System;
-using FluentAssertions;
+using AwesomeAssertions;
 using Foundation;
 using Http.Resilience.Policies;
 using Xunit;

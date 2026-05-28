@@ -6,7 +6,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
 using System.Threading.Tasks;
-using FluentAssertions;
+using AwesomeAssertions;
 using Http.Resilience.Internals;
 using Http.Resilience.Policies;
 using Http.Resilience.Tests.Logging;
