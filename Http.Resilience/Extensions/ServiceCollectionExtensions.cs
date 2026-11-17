@@ -1,5 +1,4 @@
-﻿using System;
-using Http.Resilience;
+﻿using Http.Resilience;
 using Microsoft.Extensions.Configuration;
 
 namespace Microsoft.Extensions.DependencyInjection
@@ -19,7 +18,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
         public static IServiceCollection AddHttpResilience(
             this IServiceCollection services,
-            Action<HttpRetryOptions> options = null)
+            Action<HttpRetryOptions>? options = null)
         {
             // Configuration
             if (options != null)

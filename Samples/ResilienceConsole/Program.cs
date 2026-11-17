@@ -45,7 +45,7 @@ namespace ResilienceConsole
         private static async Task Example1_OK()
         {
             var httpClient = new HttpClient();
-            var requestUri = "http://worldtimeapi.org/api/timezone/Europe/Zurich";
+            var requestUri = "https://www.timeapi.io/api/v1/time/current/utc";
 
             var httpRetryHelper = new HttpRetryHelper(Logger, maxRetries: 3);
             httpRetryHelper.RetryOnException<HttpRequestException>(ex => { return ex.StatusCode == HttpStatusCode.ServiceUnavailable; });
@@ -66,7 +66,7 @@ namespace ResilienceConsole
         private static async Task Example2_RetryOnNotFound()
         {
             var httpClient = new HttpClient();
-            var requestUri = "http://worldtimeapi.org/not-found";
+            var requestUri = "https://unknown-host/not-found";
 
             var httpRetryHelper = new HttpRetryHelper(Logger, maxRetries: 3);
             httpRetryHelper.Options.EnsureSuccessStatusCode = false;
@@ -88,7 +88,7 @@ namespace ResilienceConsole
         private static async Task Example3_RetryOnException()
         {
             var httpClient = new HttpClient();
-            var requestUri = "https://quotes.rest/qod?language=en";
+            const string requestUri = "https://thequoteshub.com/api/";
 
             var httpRetryOptions = new HttpRetryOptions();
             httpRetryOptions.MaxRetries = 4;

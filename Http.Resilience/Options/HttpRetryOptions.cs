@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
+﻿using System.Collections.ObjectModel;
 using System.Net;
-using System.Net.Http;
 using System.Runtime.CompilerServices;
-using System.Threading;
 using Http.Resilience.Extensions;
 
 namespace Http.Resilience
@@ -20,7 +15,7 @@ namespace Http.Resilience
         ///     if we should not, even though this is technically a retryable status code.
         /// </summary>
         /// <param name="statusCode">The response status code to check if we should retry the request.</param>
-        /// <returns>False if we should retry, true if we should not based on the response.</returns>
+        /// <returns>False if we should retry, true if we should not retry based on the response.</returns>
         public delegate bool HttpResponseMessageFilter(int statusCode, IEnumerable<KeyValuePair<string, IEnumerable<string>>> headers);
 
         private const int DefaultMaxRetries = 5;
@@ -47,7 +42,7 @@ namespace Http.Resilience
         private TimeSpan maxBackoff;
         private int maxRetries;
         private TimeSpan minBackoff;
-        private ICollection<HttpStatusCode> retryableStatusCodes;
+        private ICollection<HttpStatusCode> retryableStatusCodes = new HashSet<HttpStatusCode>();
         private LoggingOptions logging = new LoggingOptions();
 
         public HttpRetryOptions()

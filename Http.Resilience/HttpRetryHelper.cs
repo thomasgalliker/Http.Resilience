@@ -1,11 +1,5 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Net.Http;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Http.Resilience.Extensions;
 using Http.Resilience.Internals;
 using Http.Resilience.Policies;
@@ -133,7 +127,7 @@ namespace Http.Resilience
             AsyncHelper.RunSync(() => this.InvokeAsync(() =>
             {
                 action();
-                return Task.FromResult<object>(null);
+                return Task.CompletedTask;
             }, actionName));
         }
 
@@ -163,10 +157,10 @@ namespace Http.Resilience
                 throw new ArgumentNullException(nameof(function));
             }
 
-            await this.InvokeAsync<object>(async () =>
+            await this.InvokeAsync<object?>(async () =>
             {
                 await function();
-                return Task.FromResult<object>(null);
+                return null;
             }, functionName);
         }
 
@@ -214,7 +208,8 @@ namespace Http.Resilience
                         {
                             await this.SleepAsync(remainingAttempts);
                             currentAttempt++;
-                            this.Log(LogLevel.Information, $"{functionName} --> Retry on result {lastResult.GetType().GetFormattedClassName()}");
+                            var resultTypeName = lastResult?.GetType().GetFormattedClassName() ?? "null";
+                            this.Log(LogLevel.Information, $"{functionName} --> Retry on result {resultTypeName}");
                             continue;
                         }
                     }
@@ -258,7 +253,7 @@ namespace Http.Resilience
         /// Checks all retry policies if the given <paramref name="parameter"/>
         /// should lead to a retry.
         /// </summary>
-        private bool EvaluateRetryPolicies(object parameter)
+        private bool EvaluateRetryPolicies(object? parameter)
         {
             if (parameter == null)
             {

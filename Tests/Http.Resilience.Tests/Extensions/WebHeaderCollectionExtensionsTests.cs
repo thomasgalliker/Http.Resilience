@@ -1,6 +1,6 @@
 ﻿using System.Linq;
 using System.Net;
-using FluentAssertions;
+using AwesomeAssertions;
 using Http.Resilience.Extensions;
 using Xunit;
 
